@@ -39,10 +39,6 @@ class GristApi
     response['records']
   end
 
-  def fields_for_data(data)
-    { fields: data }
-  end
-
   def create_attachment(attachment_data)
     form_data = attachment_data.map do |key, value|
       [key.to_s, value, { filename: File.basename(value.path) }]
@@ -53,10 +49,13 @@ class GristApi
 
   private
 
+  def fields_for_data(data)
+    { fields: data }
+  end
+
   def make_request(verb, endpoint, body = nil, query_params: nil)
     uri = URI("#{@api_url}#{endpoint}")
     
-    # Add query parameters if provided
     if query_params
       uri.query = URI.encode_www_form(query_params)
     end
@@ -65,7 +64,6 @@ class GristApi
     request = build_request(verb, uri)
     request['Content-Type'] = 'application/json'
     
-    # Add body for POST, PUT, PATCH requests
     if body && [:post, :put, :patch].include?(verb)
       request.body = body.to_json
     end
