@@ -43,6 +43,10 @@ class SimplifionsMigration
         end
     end
 
+    def delete_solution
+        puts @target_grist.delete_record("Solutions", 15)
+    end
+
     def create_a_solution
         solution_data = {
             Visible_sur_simplifions: true,
@@ -69,7 +73,8 @@ end
 # Example usage
 if __FILE__ == $0
     migration = SimplifionsMigration.new
-    migration.list_solutions_columns
-    migration.create_a_solution
-    migration.create_attachment
+    # migration.list_solutions_columns
+    # migration.create_a_solution
+    # migration.create_attachment
+    migration.delete_solution
 end

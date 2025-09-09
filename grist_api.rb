@@ -51,6 +51,14 @@ class GristApi
     make_multipart_request(:post, "/docs/#{@document_id}/attachments", form_data)
   end
 
+  def delete_record(table_id, record_id)
+    delete_records(table_id, [record_id])
+  end
+
+  def delete_records(table_id, record_ids)
+    make_request(:post, "/docs/#{@document_id}/tables/#{table_id}/data/delete", record_ids)
+  end
+
   private
 
   def fields_for_data(data)
