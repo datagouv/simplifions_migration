@@ -11,12 +11,17 @@ class GristApi
 
   def tables
     response = make_request(:get, "/docs/#{@document_id}/tables")
-    response['tables'] || []
+    response['tables']
   end
 
   def columns(table_id)
     response = make_request(:get, "/docs/#{@document_id}/tables/#{table_id}/columns")
-    response['columns'] || []
+    response['columns']
+  end
+
+  def records(table_id)
+    response = make_request(:get, "/docs/#{@document_id}/tables/#{table_id}/records")
+    response['records']
   end
 
   private

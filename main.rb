@@ -24,6 +24,7 @@ class SimplifionsMigration
         source_tables = @source_grist.tables
         puts source_tables.map { |table| table['id'] }
         list_columns(source_tables.first['id'])
+        list_records(source_tables.first['id'])
 
         puts "\n\nTarget tables:"
         target_tables = @target_grist.tables
@@ -34,6 +35,12 @@ class SimplifionsMigration
         puts "Columns for table '#{table_id}':"
         columns = @source_grist.columns(table_id)
         puts columns.map { |column| column['id'] }
+    end
+
+    def list_records(table_id)
+        puts "Records for table '#{table_id}':"
+        records = @source_grist.records(table_id)
+        puts records.map { |record| record['id'] }
     end
 end
 
