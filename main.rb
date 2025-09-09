@@ -38,7 +38,7 @@ class SimplifionsMigration
             Prix: "Gratuit",
             Budget_requis: 1,
             Types_de_simplification: 1,
-            A_destination_de: 2,
+            A_destination_de: ["L", 2, 3],
             Pour_simplifier_les_demarches_de: 3,
             Cette_solution_permet: "Cette solution permet ceci",
             Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
@@ -53,6 +53,6 @@ end
 # Example usage
 if __FILE__ == $0
     migration = SimplifionsMigration.new
-    migration.list_solutions_columns
-    # migration.create_a_solution
+    # migration.list_solutions_columns
+    migration.create_a_solution
 end
