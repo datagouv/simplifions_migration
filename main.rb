@@ -70,7 +70,11 @@ class SimplifionsMigration
   end
 
   def list_attachments
-   puts @target_grist.all_attachments
+    attachments = @target_grist.all_attachments
+    puts attachments.length
+    @target_grist.delete_unused_attachments
+    attachments = @target_grist.all_attachments
+    puts attachments.length
   end
 end
 
