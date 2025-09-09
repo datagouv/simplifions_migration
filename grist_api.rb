@@ -44,28 +44,12 @@ class GristApi
   end
 
   def create_attachment(attachment_data)
-    # For file uploads, we need to use multipart form data
-    uri = URI("#{@api_url}/docs/#{@document_id}/attachments")
-    
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = uri.scheme == 'https'
-    
-    request = Net::HTTP::Post.new(uri)
-    request['Authorization'] = "Bearer #{@api_key}"
-    
     form_data = attachment_data.map do |key, value|
       [key.to_s, value, { filename: File.basename(value.path) }]
     end
     
-    request.set_form(form_data, "multipart/form-data")
-
-    response = http.request(request)
-    
-    if response.code == '200' || response.code == '201'
-      JSON.parse(response.body)
-    else
-      raise "Failed to create attachment: #{response.code} - #{response.body}"
-    end
+    response = make_multipart_request(:post, "/docs/#{@document_id}/attachments", form_data)
+    handle_response(response, "create attachment")
   end
 
   private
@@ -76,15 +60,10 @@ class GristApi
     # Add query parameters if provided
     if query_params
       uri.query = URI.encode_www_form(query_params)
-      print uri
     end
     
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = uri.scheme == 'https'
-    
-    # Create request using dynamic method call
-    request_class = Net::HTTP.const_get(verb.to_s.capitalize)
-    request = request_class.new(uri)
+    http = create_http_connection(uri)
+    request = create_request(verb, uri)
     
     request['Authorization'] = "Bearer #{@api_key}"
     request['Content-Type'] = 'application/json'
@@ -95,11 +74,36 @@ class GristApi
     end
     
     response = http.request(request)
+    handle_response(response, "#{verb.upcase} #{endpoint}")
+  end
+
+  def make_multipart_request(verb, endpoint, form_data)
+    uri = URI("#{@api_url}#{endpoint}")
+    http = create_http_connection(uri)
+    request = create_request(verb, uri)
     
+    request['Authorization'] = "Bearer #{@api_key}"
+    request.set_form(form_data, "multipart/form-data")
+    
+    http.request(request)
+  end
+
+  def create_http_connection(uri)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == 'https'
+    http
+  end
+
+  def create_request(verb, uri)
+    request_class = Net::HTTP.const_get(verb.to_s.capitalize)
+    request_class.new(uri)
+  end
+
+  def handle_response(response, operation)
     if response.code == '200' || response.code == '201'
       JSON.parse(response.body)
     else
-      raise "Failed to #{verb.upcase} #{endpoint}: #{response.code} - #{response.body}"
+      raise "Failed to #{operation}: #{response.code} - #{response.body}"
     end
   end
 end

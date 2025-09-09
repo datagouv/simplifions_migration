@@ -69,7 +69,7 @@ end
 # Example usage
 if __FILE__ == $0
     migration = SimplifionsMigration.new
-    # migration.list_solutions_columns
-    # migration.create_a_solution
+    migration.list_solutions_columns
+    migration.create_a_solution
     migration.create_attachment
 end
