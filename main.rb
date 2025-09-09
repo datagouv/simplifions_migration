@@ -24,7 +24,23 @@ class SimplifionsMigration
         columns = @target_grist.columns("Solutions")
         puts columns.map { |column| column['id'] }
 
-        puts @target_grist.record("Solutions", 5)
+        puts @target_grist.record("Solutions", 1)
+    end
+
+    def create_attachment
+        # Create an attachment in the target grist
+        file_path = "Sample Image.png"
+        
+        file = File.open(file_path, 'rb')
+        
+        begin
+            # Try different approaches for the upload parameter
+            attachments = @target_grist.create_attachment({ "upload" => file })
+            puts "Attachment created successfully!"
+            puts "Full response: #{attachments}"
+        ensure
+            file.close
+        end
     end
 
     def create_a_solution
@@ -42,8 +58,8 @@ class SimplifionsMigration
             Pour_simplifier_les_demarches_de: 3,
             Cette_solution_permet: "Cette solution permet ceci",
             Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
-            Image: "Image de la solution",
-            Legende_de_l_image: "Legende de l'image",
+            Image: ["L", 1],
+            Legende_de_l_image: "Legende de l'image"
         }
         record = @target_grist.create_record("Solutions", solution_data)
         puts record
@@ -54,5 +70,6 @@ end
 if __FILE__ == $0
     migration = SimplifionsMigration.new
     # migration.list_solutions_columns
-    migration.create_a_solution
+    # migration.create_a_solution
+    migration.create_attachment
 end

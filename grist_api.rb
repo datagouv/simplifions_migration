@@ -43,6 +43,31 @@ class GristApi
     { fields: data }
   end
 
+  def create_attachment(attachment_data)
+    # For file uploads, we need to use multipart form data
+    uri = URI("#{@api_url}/docs/#{@document_id}/attachments")
+    
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == 'https'
+    
+    request = Net::HTTP::Post.new(uri)
+    request['Authorization'] = "Bearer #{@api_key}"
+    
+    form_data = attachment_data.map do |key, value|
+      [key.to_s, value, { filename: File.basename(value.path) }]
+    end
+    
+    request.set_form(form_data, "multipart/form-data")
+
+    response = http.request(request)
+    
+    if response.code == '200' || response.code == '201'
+      JSON.parse(response.body)
+    else
+      raise "Failed to create attachment: #{response.code} - #{response.body}"
+    end
+  end
+
   private
 
   def make_request(verb, endpoint, body = nil, query_params: nil)
