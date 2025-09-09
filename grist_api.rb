@@ -48,8 +48,7 @@ class GristApi
       [key.to_s, value, { filename: File.basename(value.path) }]
     end
     
-    response = make_multipart_request(:post, "/docs/#{@document_id}/attachments", form_data)
-    handle_response(response, "create attachment")
+    make_multipart_request(:post, "/docs/#{@document_id}/attachments", form_data)
   end
 
   private
@@ -63,9 +62,7 @@ class GristApi
     end
     
     http = create_http_connection(uri)
-    request = create_request(verb, uri)
-    
-    request['Authorization'] = "Bearer #{@api_key}"
+    request = build_request(verb, uri)
     request['Content-Type'] = 'application/json'
     
     # Add body for POST, PUT, PATCH requests
@@ -80,12 +77,11 @@ class GristApi
   def make_multipart_request(verb, endpoint, form_data)
     uri = URI("#{@api_url}#{endpoint}")
     http = create_http_connection(uri)
-    request = create_request(verb, uri)
-    
-    request['Authorization'] = "Bearer #{@api_key}"
+    request = build_request(verb, uri)
     request.set_form(form_data, "multipart/form-data")
     
-    http.request(request)
+    response = http.request(request)
+    handle_response(response, "#{verb.upcase} #{endpoint}")
   end
 
   def create_http_connection(uri)
@@ -94,9 +90,11 @@ class GristApi
     http
   end
 
-  def create_request(verb, uri)
+  def build_request(verb, uri)
     request_class = Net::HTTP.const_get(verb.to_s.capitalize)
-    request_class.new(uri)
+    request = request_class.new(uri)
+    request['Authorization'] = "Bearer #{@api_key}"
+    request
   end
 
   def handle_response(response, operation)
