@@ -19,33 +19,40 @@ class SimplifionsMigration
         )
     end
 
-    def list_tables
-        puts "Source tables:"
-        source_tables = @source_grist.tables
-        puts source_tables.map { |table| table['id'] }
-        list_columns(source_tables.first['id'])
-        list_records(source_tables.first['id'])
-
-        puts "\n\nTarget tables:"
-        target_tables = @target_grist.tables
-        puts target_tables.map { |table| table['id'] }
-    end
-
-    def list_columns(table_id)
-        puts "Columns for table '#{table_id}':"
-        columns = @source_grist.columns(table_id)
+    def list_solutions_columns
+        puts "Solutions columns:"
+        columns = @target_grist.columns("Solutions")
         puts columns.map { |column| column['id'] }
+
+        puts @target_grist.record("Solutions", 5)
     end
 
-    def list_records(table_id)
-        puts "Records for table '#{table_id}':"
-        records = @source_grist.records(table_id)
-        puts records.map { |record| record['id'] }
+    def create_a_solution
+        solution_data = {
+            Visible_sur_simplifions: true,
+            Description_courte: "Description courte de la solution",
+            Description_longue: "Description longue de la solution",
+            Site_internet: "https://www.solution1.com",
+            Nom: "Nom de la solution",
+            Operateur: 1,
+            Prix: "Gratuit",
+            Budget_requis: 1,
+            Types_de_simplification: 1,
+            A_destination_de: 2,
+            Pour_simplifier_les_demarches_de: 3,
+            Cette_solution_permet: "Cette solution permet ceci",
+            Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
+            Image: "Image de la solution",
+            Legende_de_l_image: "Legende de l'image",
+        }
+        record = @target_grist.create_record("Solutions", solution_data)
+        puts record
     end
 end
 
 # Example usage
 if __FILE__ == $0
     migration = SimplifionsMigration.new
-    migration.list_tables
+    migration.list_solutions_columns
+    # migration.create_a_solution
 end
