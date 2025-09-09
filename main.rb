@@ -35,7 +35,7 @@ class SimplifionsMigration
         
         begin
             # Try different approaches for the upload parameter
-            attachments = @target_grist.create_attachment({ "upload" => file })
+            attachments = @target_grist.create_attachment(file)
             puts "Attachment created successfully!"
             puts "Full response: #{attachments}"
         ensure
@@ -58,7 +58,7 @@ class SimplifionsMigration
             Pour_simplifier_les_demarches_de: 3,
             Cette_solution_permet: "Cette solution permet ceci",
             Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
-            Image: ["L", 1],
+            Image: ["L", 10],
             Legende_de_l_image: "Legende de l'image"
         }
         record = @target_grist.create_record("Solutions", solution_data)

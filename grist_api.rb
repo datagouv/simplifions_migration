@@ -39,9 +39,13 @@ class GristApi
     response['records']
   end
 
-  def create_attachment(attachment_data)
-    form_data = attachment_data.map do |key, value|
-      [key.to_s, value, { filename: File.basename(value.path) }]
+  def create_attachment(file)
+    create_attachments([file])
+  end
+
+  def create_attachments(files)
+    form_data = files.map do |file|
+      ["upload", file, { filename: File.basename(file.path) }]
     end
     
     make_multipart_request(:post, "/docs/#{@document_id}/attachments", form_data)
