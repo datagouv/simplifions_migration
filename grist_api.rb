@@ -43,6 +43,11 @@ class GristApi
     create_attachments([file])
   end
 
+  def all_attachments
+    response = make_request(:get, "/docs/#{@document_id}/attachments")
+    response['records']
+  end
+
   def create_attachments(files)
     form_data = files.map do |file|
       ["upload", file, { filename: File.basename(file.path) }]

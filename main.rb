@@ -6,75 +6,80 @@ GRIST_API_KEY = ENV['SECRET_GRIST_API_KEY']
 GRIST_API_URL = "https://grist.numerique.gouv.fr/api"
 
 class SimplifionsMigration
-    def initialize
-        @source_grist = GristApi.new(
-            api_url: GRIST_API_URL,
-            api_key: GRIST_API_KEY,
-            document_id: SOURCE_GRIST_ID
-        )
-        @target_grist = GristApi.new(
-            api_url: GRIST_API_URL,
-            api_key: GRIST_API_KEY,
-            document_id: TARGET_GRIST_ID
-        )
-    end
+  def initialize
+   @source_grist = GristApi.new(
+    api_url: GRIST_API_URL,
+    api_key: GRIST_API_KEY,
+    document_id: SOURCE_GRIST_ID
+   )
+   @target_grist = GristApi.new(
+    api_url: GRIST_API_URL,
+    api_key: GRIST_API_KEY,
+    document_id: TARGET_GRIST_ID
+   )
+  end
 
-    def list_solutions_columns
-        puts "Solutions columns:"
-        columns = @target_grist.columns("Solutions")
-        puts columns.map { |column| column['id'] }
+  def list_solutions_columns
+   puts "Solutions columns:"
+   columns = @target_grist.columns("Solutions")
+   puts columns.map { |column| column['id'] }
 
-        puts @target_grist.record("Solutions", 1)
-    end
+   puts @target_grist.record("Solutions", 1)
+  end
 
-    def create_attachment
-        # Create an attachment in the target grist
-        file_path = "Sample Image.png"
-        
-        file = File.open(file_path, 'rb')
-        
-        begin
-            # Try different approaches for the upload parameter
-            attachments = @target_grist.create_attachment(file)
-            puts "Attachment created successfully!"
-            puts "Full response: #{attachments}"
-        ensure
-            file.close
-        end
-    end
+  def create_attachment
+   # Create an attachment in the target grist
+   file_path = "Sample Image.png"
+   
+   file = File.open(file_path, 'rb')
+   
+   begin
+    # Try different approaches for the upload parameter
+    attachments = @target_grist.create_attachment(file)
+    puts "Attachment created successfully!"
+    puts "Full response: #{attachments}"
+   ensure
+    file.close
+   end
+  end
 
-    def delete_solution
-        puts @target_grist.delete_record("Solutions", 15)
-    end
+  def delete_solution
+   puts @target_grist.delete_record("Solutions", 15)
+  end
 
-    def create_a_solution
-        solution_data = {
-            Visible_sur_simplifions: true,
-            Description_courte: "Description courte de la solution",
-            Description_longue: "Description longue de la solution",
-            Site_internet: "https://www.solution1.com",
-            Nom: "Nom de la solution",
-            Operateur: 1,
-            Prix: "Gratuit",
-            Budget_requis: 1,
-            Types_de_simplification: 1,
-            A_destination_de: ["L", 2, 3],
-            Pour_simplifier_les_demarches_de: 3,
-            Cette_solution_permet: "Cette solution permet ceci",
-            Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
-            Image: ["L", 10],
-            Legende_de_l_image: "Legende de l'image"
-        }
-        record = @target_grist.create_record("Solutions", solution_data)
-        puts record
-    end
+  def create_a_solution
+    solution_data = {
+      Visible_sur_simplifions: true,
+      Description_courte: "Description courte de la solution",
+      Description_longue: "Description longue de la solution",
+      Site_internet: "https://www.solution1.com",
+      Nom: "Nom de la solution",
+      Operateur: 1,
+      Prix: "Gratuit",
+      Budget_requis: 1,
+      Types_de_simplification: 1,
+      A_destination_de: ["L", 2, 3],
+      Pour_simplifier_les_demarches_de: 3,
+      Cette_solution_permet: "Cette solution permet ceci",
+      Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
+      Image: ["L", 10],
+      Legende_de_l_image: "Legende de l'image"
+    }
+    record = @target_grist.create_record("Solutions", solution_data)
+    puts record
+  end
+
+  def list_attachments
+   puts @target_grist.all_attachments
+  end
 end
 
 # Example usage
 if __FILE__ == $0
-    migration = SimplifionsMigration.new
-    # migration.list_solutions_columns
-    # migration.create_a_solution
-    # migration.create_attachment
-    migration.delete_solution
+  migration = SimplifionsMigration.new
+  # migration.list_solutions_columns
+  # migration.create_a_solution
+  # migration.create_attachment
+  # migration.delete_solution
+  migration.list_attachments
 end
