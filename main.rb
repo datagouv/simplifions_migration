@@ -115,6 +115,7 @@ class SimplifionsMigration
   def transform_public_solution(solution_source)
     source_fields = solution_source["fields"]
     p source_fields["Ref_Nom_de_la_solution"]
+
     solution_target = {
       Visible_sur_simplifions: source_fields["Visible_sur_simplifions"],
       Description_courte: source_fields["Description_courte"],
@@ -125,8 +126,8 @@ class SimplifionsMigration
       Prix: transform_prix(source_fields["Prix_"]), 
       Budget_requis: transform_budget(source_fields["budget"]), 
       Types_de_simplification: transform_types_simplifications(source_fields["types_de_simplification"]),
-      A_destination_de: nil,
-      Pour_simplifier_les_demarches_de: nil,
+      A_destination_de: transform_usagers(source_fields["target_users"]),
+      Pour_simplifier_les_demarches_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
       Cette_solution_permet: source_fields["Cette_solution_permet_"],
       Cette_solution_ne_permet_pas: source_fields["Cette_solution_ne_permet_pas_"],
       Image: nil,
@@ -168,6 +169,24 @@ class SimplifionsMigration
     ["L"] + types_simplifications_targets.map { |types_simplification_target| types_simplification_target["id"] }
   end
 
+  def transform_usagers(usagers_source)
+    fetch_usagers_target # Fills @usagers_target if not already filled
+    usagers_names = clean_array(usagers_source)
+    return nil if !usagers_names
+
+    usagers_targets = usagers_names.map { |usagers_name| @usagers_target.find { |usagers| usagers["fields"]["Label"] == usagers_name } }
+    ["L"] + usagers_targets.map { |usagers_target| usagers_target["id"] }
+  end
+
+  def transform_fournisseurs_de_service(fournisseurs_de_service_source)
+    fetch_fournisseurs_de_service_target # Fills @fournisseurs_de_service_target if not already filled
+    fournisseurs_de_service_names = clean_array(fournisseurs_de_service_source)
+    return nil if !fournisseurs_de_service_names
+
+    fournisseurs_de_service_targets = fournisseurs_de_service_names.map { |fournisseurs_de_service_name| @fournisseurs_de_service_target.find { |fournisseurs_de_service| fournisseurs_de_service["fields"]["slug"] == fournisseurs_de_service_name } }
+    ["L"] + fournisseurs_de_service_targets.map { |fournisseurs_de_service_target| fournisseurs_de_service_target["id"] }
+  end
+
   def fetch_operateurs_publics_source
     @operateurs_publics_source ||= @source_grist.records("TYPE_nom_administration")
   end
@@ -182,6 +201,14 @@ class SimplifionsMigration
   
   def fetch_types_simplifications_target
     @types_simplifications_target ||= @target_grist.records("Types_de_simplification")
+  end
+
+  def fetch_usagers_target
+    @usagers_target ||= @target_grist.records("Usagers")
+  end
+
+  def fetch_fournisseurs_de_service_target
+    @fournisseurs_de_service_target ||= @target_grist.records("Fournisseurs_de_services")
   end
 
   def clean_array(array_source)
