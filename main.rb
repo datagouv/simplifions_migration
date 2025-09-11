@@ -28,19 +28,18 @@ class SimplifionsMigration
   end
 
   def migrate_public_solutions
-    # print_columns("SIMPLIFIONS_produitspublics", "Solutions")
     @solutions_publiques_source ||= @source_grist.records("SIMPLIFIONS_produitspublics")
       .filter { |solution| solution["fields"]["Ref_Nom_de_la_solution"] != "000-data-gouv" }
     solution_targets = @solutions_publiques_source.map do |solution_source|
       transform_public_solution(solution_source)
     end
+
+    # @target_grist.delete_all_records("Solutions")
     @target_grist.create_records("Solutions", solution_targets)
     @target_grist.delete_unused_attachments
   end
 
   def migrate_operateurs
-    # print_columns("TYPE_nom_administration", "Operateurs")
-    # print_columns("Editeurs", "Operateurs")
     fetch_operateurs_publics_source
     fetch_operateurs_prives_source
 
@@ -225,22 +224,6 @@ class SimplifionsMigration
     return nil if array_source.nil? || array_source.length <= 1
     array_source[1..] # Remove the leading "L"
   end
-
-  # def create_attachment
-  #  # Create an attachment in the target grist
-  #  file_path = "Sample Image.png"
-   
-  #  file = File.open(file_path, 'rb')
-   
-  #  begin
-  #   # Try different approaches for the upload parameter
-  #   attachments = @target_grist.create_attachment(file)
-  #   puts "Attachment created successfully!"
-  #   puts "Full response: #{attachments}"
-  #  ensure
-  #   file.close
-  #  end
-  # end
 end
 
 # Example usage
