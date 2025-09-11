@@ -68,6 +68,12 @@ class GristApi
     make_request(:post, "/docs/#{@document_id}/tables/#{table_id}/data/delete", record_ids)
   end
 
+  def delete_all_records(table_id)
+    records = records(table_id)
+    ids = records.map { |record| record["id"] }
+    delete_records(table_id, ids)
+  end
+
   private
 
   def fields_for_data(data)

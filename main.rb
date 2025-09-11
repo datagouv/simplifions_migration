@@ -20,6 +20,8 @@ class SimplifionsMigration
   end
 
   def migrate_solutions
+    # print_columns("SIMPLIFIONS_cas_usages", "Cas_d_usages")
+    # print_columns("SIMPLIFIONS_produitspublics", "Solutions")
     @solutions_source = @source_grist.records("SIMPLIFIONS_produitspublics")
     solution_targets = @solutions_source.map do |solution_source|
       transform_public_solution(solution_source)
@@ -28,7 +30,18 @@ class SimplifionsMigration
   end
 
   def migrate_operateurs
-    print_columns("Produitspublics", "Operateurs")
+    # print_columns("Produitspublics", "Operateurs")
+    # print_columns("Editeurs", "Operateurs")
+    @operateurs_publics_source = @source_grist.records("Produitspublics")
+    @operateurs_prives_source = @source_grist.records("Editeurs")
+    operateur_targets = @operateurs_publics_source.map do |operateur_source|
+      transform_public_operateur(operateur_source)
+    end
+    operateur_targets += @operateurs_prives_source.map do |operateur_source|
+      transform_private_operateur(operateur_source)
+    end
+    @target_grist.delete_all_records("Operateurs")
+    @target_grist.create_records("Operateurs", operateur_targets)
   end
 
   private
@@ -52,13 +65,25 @@ class SimplifionsMigration
 
   def transform_public_operateur(operateur_source)
     source_fields = operateur_source["fields"]
-    operateur_target = {
+    {
       Nom: source_fields["Nom_produit_public"],
       Nom_long: source_fields["Nom_long"],
       Public_ou_prive: "Public",
-      Type_d_organisation_privee: nil,
+      Type_d_organisation_privee: "",
       Site_internet: nil,
       Lien_Hubspot: nil,
+    }
+  end
+
+  def transform_private_operateur(operateur_source)
+    source_fields = operateur_source["fields"]
+    {
+      Nom: source_fields["Nom_de_l_editeur"],
+      Nom_long: nil,
+      Public_ou_prive: "Privé",
+      Type_d_organisation_privee: source_fields["Type_d_organisation"],
+      Site_internet: source_fields["Site_internet"],
+      Lien_Hubspot: source_fields["Lien_Hubspot"],
     }
   end
 
@@ -123,7 +148,4 @@ if __FILE__ == $0
   # migration.migrate_solutions
 
   migration.migrate_operateurs
-
-  # migration.print_columns("SIMPLIFIONS_cas_usages", "Cas_d_usages")
-  # migration.print_columns("SIMPLIFIONS_produitspublics", "Solutions")
 end
