@@ -25,8 +25,10 @@ class GristApi
     response['records']
   end
 
-  def record(table_id, record_id)
-    response = records(table_id, filter: { id: [record_id] })
+  def find_record(table_id, **filter)
+    filter = filter.map { |key, value| [key, [value]] }.to_h
+    records = records(table_id, filter: filter)
+    records.first
   end
 
   def create_record(table_id, record_data)
