@@ -19,71 +19,107 @@ class SimplifionsMigration
    )
   end
 
-  def list_solutions_columns
-   puts "Solutions columns:"
-   columns = @target_grist.columns("Solutions")
-   puts columns.map { |column| column['id'] }
-
-   puts @target_grist.record("Solutions", 1)
+  def migrate_solutions
+    @solutions_source = @source_grist.records("SIMPLIFIONS_produitspublics")
+    solution_targets = @solutions_source.map do |solution_source|
+      transform_public_solution(solution_source)
+    end
+    @target_grist.create_records("Solutions", solution_targets)
   end
 
-  def create_attachment
-   # Create an attachment in the target grist
-   file_path = "Sample Image.png"
-   
-   file = File.open(file_path, 'rb')
-   
-   begin
-    # Try different approaches for the upload parameter
-    attachments = @target_grist.create_attachment(file)
-    puts "Attachment created successfully!"
-    puts "Full response: #{attachments}"
-   ensure
-    file.close
-   end
+  private
+
+  def print_columns(source_table, target_table)
+    puts "Source columns of #{source_table}:"
+    puts @source_grist.columns(source_table).map { |column| [column["id"], column["fields"]["type"], column["fields"]["isFormula"] ? "formula" : ""].join(": ") }
+    puts "--------------------------------"
+    puts "Target columns of #{target_table}:"
+    puts @target_grist.columns(target_table).map { |column| [column["id"], column["fields"]["type"], column["fields"]["isFormula"] ? "formula" : ""].join(": ") }
+    puts "--------------------------------"
   end
 
-  def delete_solution
-   puts @target_grist.delete_record("Solutions", 15)
-  end
-
-  def create_a_solution
-    solution_data = {
-      Visible_sur_simplifions: true,
-      Description_courte: "Description courte de la solution",
-      Description_longue: "Description longue de la solution",
-      Site_internet: "https://www.solution1.com",
-      Nom: "Nom de la solution",
-      Operateur: 1,
-      Prix: "Gratuit",
-      Budget_requis: 1,
-      Types_de_simplification: 1,
-      A_destination_de: ["L", 2, 3],
-      Pour_simplifier_les_demarches_de: 3,
-      Cette_solution_permet: "Cette solution permet ceci",
-      Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
-      Image: ["L", 10],
-      Legende_de_l_image: "Legende de l'image"
+  def transform_cas_d_usage(cas_d_usage_source)
+    source_fields = cas_d_usage_source["fields"]
+    cas_d_usage_target = {
+      "Icone_du_titre" => source_fields["Icone_du_titre"],
+      "Nom" => source_fields["Titre"],
+      "Description" => source_fields["Description"],
+      "Visible_sur_simplifions" => source_fields["Visible_sur_simplifions"],
+      "Contexte" => source_fields["Contexte"],
+      "Cadre_juridique" => source_fields["Cadre_juridique"],
+      "A_destination_de_" => nil,
+      "Pour_simplifier_les_demarches_de" => nil,
+      "Recommandations" => nil
     }
-    record = @target_grist.create_record("Solutions", solution_data)
-    puts record
+    cas_d_usage_target
   end
 
-  def list_attachments
-    attachments = @target_grist.all_attachments
-    puts attachments.length
-    @target_grist.delete_unused_attachments
-    attachments = @target_grist.all_attachments
-    puts attachments.length
+  def transform_public_solution(solution_source)
+    source_fields = solution_source["fields"]
+    solution_target = {
+      Visible_sur_simplifions: source_fields["Visible_sur_simplifions"],
+      Description_courte: source_fields["Description_courte"],
+      Description_longue: source_fields["Description_longue"],
+      Site_internet: source_fields["URL_Consulter_la_solution_"],
+      Nom: source_fields["Ref_Nom_de_la_solution"],
+      Operateur: nil,
+      Prix: nil, # Prix_ 
+      Budget_requis: nil, 
+      Types_de_simplification: nil,
+      A_destination_de: nil,
+      Pour_simplifier_les_demarches_de: nil,
+      Cette_solution_permet: source_fields["Cette_solution_permet_"],
+      Cette_solution_ne_permet_pas: source_fields["Cette_solution_ne_permet_pas_"],
+      Image: nil,
+      Legende_de_l_image: source_fields["Legende_image_principale"],
+    }
+    solution_target
   end
+
+  # def create_attachment
+  #  # Create an attachment in the target grist
+  #  file_path = "Sample Image.png"
+   
+  #  file = File.open(file_path, 'rb')
+   
+  #  begin
+  #   # Try different approaches for the upload parameter
+  #   attachments = @target_grist.create_attachment(file)
+  #   puts "Attachment created successfully!"
+  #   puts "Full response: #{attachments}"
+  #  ensure
+  #   file.close
+  #  end
+  # end
+
+  # def create_a_solution
+  #   solution_data = {
+  #     Visible_sur_simplifions: true,
+  #     Description_courte: "Description courte de la solution",
+  #     Description_longue: "Description longue de la solution",
+  #     Site_internet: "https://www.solution1.com",
+  #     Nom: "Nom de la solution",
+  #     Operateur: 1,
+  #     Prix: "Gratuit",
+  #     Budget_requis: 1,
+  #     Types_de_simplification: 1,
+  #     A_destination_de: ["L", 2, 3],
+  #     Pour_simplifier_les_demarches_de: 3,
+  #     Cette_solution_permet: "Cette solution permet ceci",
+  #     Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
+  #     Image: ["L", 10],
+  #     Legende_de_l_image: "Legende de l'image"
+  #   }
+  #   record = @target_grist.create_record("Solutions", solution_data)
+  #   puts record
+  # end
 end
 
 # Example usage
 if __FILE__ == $0
   migration = SimplifionsMigration.new
-  # migration.list_solutions_columns
-  # migration.create_a_solution
-  # migration.create_attachment
-  # migration.delete_solution
-  migration.list_attachments
+  migration.migrate_solutions
+
+  # migration.print_columns("SIMPLIFIONS_cas_usages", "Cas_d_usages")
+  # migration.print_columns("SIMPLIFIONS_produitspublics", "Solutions")
 end
