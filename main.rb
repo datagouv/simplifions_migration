@@ -27,15 +27,39 @@ class SimplifionsMigration
     @target_grist.create_records("Solutions", solution_targets)
   end
 
+  def migrate_operateurs
+    print_columns("Produitspublics", "Operateurs")
+  end
+
   private
 
   def print_columns(source_table, target_table)
     puts "Source columns of #{source_table}:"
-    puts @source_grist.columns(source_table).map { |column| [column["id"], column["fields"]["type"], column["fields"]["isFormula"] ? "formula" : ""].join(": ") }
+    puts @source_grist.columns(source_table)
+      .map { |column| column["id"] }
     puts "--------------------------------"
     puts "Target columns of #{target_table}:"
-    puts @target_grist.columns(target_table).map { |column| [column["id"], column["fields"]["type"], column["fields"]["isFormula"] ? "formula" : ""].join(": ") }
+    puts @target_grist.columns(target_table)
+      .filter{ |column| column["fields"]["formula"].length == 0 }
+      .map { |column| 
+        [
+          column["id"],
+          column["fields"]["type"].start_with?("Ref") ? "nil," : "source_fields[\"\"],"
+        ].join(": ")
+      }
     puts "--------------------------------"
+  end
+
+  def transform_public_operateur(operateur_source)
+    source_fields = operateur_source["fields"]
+    operateur_target = {
+      Nom: source_fields["Nom_produit_public"],
+      Nom_long: source_fields["Nom_long"],
+      Public_ou_prive: "Public",
+      Type_d_organisation_privee: nil,
+      Site_internet: nil,
+      Lien_Hubspot: nil,
+    }
   end
 
   def transform_cas_d_usage(cas_d_usage_source)
@@ -96,7 +120,9 @@ end
 # Example usage
 if __FILE__ == $0
   migration = SimplifionsMigration.new
-  migration.migrate_solutions
+  # migration.migrate_solutions
+
+  migration.migrate_operateurs
 
   # migration.print_columns("SIMPLIFIONS_cas_usages", "Cas_d_usages")
   # migration.print_columns("SIMPLIFIONS_produitspublics", "Solutions")
