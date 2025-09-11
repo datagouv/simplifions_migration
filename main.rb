@@ -124,6 +124,12 @@ class SimplifionsMigration
       transform_public_solution(solution_source)
     end
 
+    puts "Migrating orphan public solutions..."
+    fetch_orphan_solutions_publiques_source
+    solution_targets += @orphan_solutions_publiques_source.map do |solution_source|
+      transform_orphan_public_solution(solution_source)
+    end
+
     @target_grist.create_records("Solutions", solution_targets)
   end
 
@@ -214,6 +220,20 @@ class SimplifionsMigration
       Legende_de_l_image: source_fields["Legende_image_principale"],
     }
   end
+
+  def transform_orphan_public_solution(solution_source)
+    source_fields = solution_source["fields"]
+    puts "> " + source_fields["Nom_produit_public"]
+    {
+      Visible_sur_simplifions: false,
+      Site_internet: source_fields["Site_internet"],
+      Nom: source_fields["Nom_produit_public"],
+      Operateur: transform_public_operateur_reference(source_fields["Operateur"]),
+      Pour_simplifier_les_demarches_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
+      A_destination_de: transform_usagers(source_fields["target_users"]),
+    }
+  end
+
 
   def transform_and_upload_image(image_source)
     source_image_ids = clean_array(image_source)
@@ -323,6 +343,10 @@ class SimplifionsMigration
     @solutions_publiques_source ||= @source_grist.records("SIMPLIFIONS_produitspublics")
   end
 
+  def fetch_orphan_solutions_publiques_source
+    @orphan_solutions_publiques_source ||= @source_grist.records("Produitspublics", filter: { has_simplifions_page: [false] })
+  end
+
   def clean_array(array_source)
     return nil if array_source.nil? || array_source.length <= 1
     array_source[1..] # Remove the leading "L"
@@ -333,7 +357,7 @@ end
 if __FILE__ == $0
   migration = SimplifionsMigration.new
 
-  # migration.migrate_operateurs
-  # migration.migrate_solutions
-  migration.migrate_api_and_datasets_relations
+  migration.migrate_operateurs
+  migration.migrate_solutions
+  # migration.migrate_api_and_datasets_relations
 end
