@@ -21,8 +21,8 @@ class SimplifionsMigration
 
   def migrate_cas_usages
     puts "\nMigrating cas usages..."
-    cas_usages_source = @source_grist.records("SIMPLIFIONS_cas_usages")
-    cas_usages_targets = cas_usages_source.map do |cas_usage_source|
+    fetch_cas_d_usages_source # Fills @cas_d_usages_source if not already filled
+    cas_usages_targets = @cas_usages_source.map do |cas_usage_source|
       transform_cas_usage(cas_usage_source)
     end
     @target_grist.delete_all_records("Cas_d_usages")
@@ -67,6 +67,24 @@ class SimplifionsMigration
     puts "> #{operateur_targets.length} operateurs migrated."
   end
 
+  def migrate_recommendations
+    puts "\Cleaning recommendations..."
+    @target_grist.delete_all_records("Recommandations")
+
+    puts "\nMigrating recommendations..."
+    fetch_recommendations_sources # Fills @recommendations_sources if not already filled
+
+    recommendations_targets = @recommendations_sources.map do |recommendation_source|
+      transform_recommendation_of_solution(recommendation_source)
+    end
+
+    # TODO Migrate recommendations of apidata
+
+    @target_grist.create_records("Recommandations", recommendations_targets)
+
+    puts "> #{recommendations_targets.length} recommendations migrated."
+  end
+
   private
 
   def print_columns(source_table, target_table)
@@ -84,6 +102,26 @@ class SimplifionsMigration
         ].join(": ")
       }
     puts "--------------------------------"
+  end
+
+  def transform_recommendation_of_solution(recommendation_source)
+    source_fields = recommendation_source["fields"]
+    {
+      Cas_d_usage: transform_cas_usage_reference(source_fields["cas_usage_name"]),
+      Solution_recommandee: transform_solution_reference(source_fields["Nom_de_la_solution_publique"]),
+      API_ou_datasets_recommandes: nil,
+      En_quoi_cette_solution_est_elle_utile_pour_ce_cas_d_usage: source_fields["En_quoi_cette_solution_est_elle_utile_pour_ce_cas_d_usage_"],
+      Visible_sur_simplifions: source_fields["Visible_sur_simplifions"],
+      Concretement_pour_les_usagers: source_fields["Concretement_pour_les_usagers_"],
+      Concretement_pour_vos_agents: source_fields["Concretement_pour_vos_agents_"],
+      Ce_que_ne_fait_pas_cette_solution: source_fields["Ce_que_ne_fait_pas_cette_solution_"],
+    }
+  end
+
+  def transform_cas_usage_reference(cas_usage_name)
+    fetch_cas_d_usages_target # Fills @cas_d_usages_target if not already filled
+    cas_usage_target = @cas_d_usages_target.find { |cas_usage| cas_usage["fields"]["Nom"] == cas_usage_name }
+    cas_usage_target["id"]
   end
 
   def transform_cas_usage(cas_usage_source)
@@ -463,6 +501,14 @@ class SimplifionsMigration
     @operateurs_target ||= @target_grist.records("Operateurs")
   end
 
+  def fetch_cas_d_usages_source
+    @cas_usages_source = @source_grist.records("SIMPLIFIONS_cas_usages")
+  end
+
+  def fetch_recommendations_sources
+    @recommendations_sources ||= @source_grist.records("SIMPLIFIONS_reco_solutions_cas_usages")
+  end
+
   def clean_array(array_source)
     return nil if array_source.nil? || array_source.length <= 1
     array_source[1..] # Remove the leading "L"
@@ -476,5 +522,6 @@ if __FILE__ == $0
   # migration.migrate_operateurs
   # migration.migrate_solutions
   # migration.migrate_cas_usages
-  migration.migrate_apidata_relations
+  # migration.migrate_apidata_relations
+  migration.migrate_recommendations
 end
