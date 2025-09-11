@@ -51,6 +51,7 @@ class GristApi
   end
 
   def download_attachment(attachment_id)
+    return nil if attachment_id.nil?
     file_metadata = make_request(:get, "/docs/#{@document_id}/attachments/#{attachment_id}")
     local_filename = "images/" + file_metadata["fileName"]
     if File.exist?(local_filename)

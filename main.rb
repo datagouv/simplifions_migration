@@ -458,6 +458,7 @@ class SimplifionsMigration
     return nil if !source_image_ids
     source_image_id = source_image_ids.first
     source_image = @source_grist.download_attachment(source_image_id)
+    return ["L"] if source_image.nil?
     target_image_ids = @target_grist.create_attachment(source_image)
     ["L"] + target_image_ids
   end
@@ -610,12 +611,12 @@ end
 if __FILE__ == $0
   migration = SimplifionsMigration.new
 
-  # migration.migrate_operateurs
-  # migration.migrate_solutions
-  # migration.migrate_cas_usages
-  # migration.migrate_apidata_relations
-  # migration.migrate_recommendations
-  # migration.migrate_recommendations_of_apidata
-  # migration.migrate_apidata_utiles_for_recommendations
+  migration.migrate_operateurs
+  migration.migrate_solutions
+  migration.migrate_cas_usages
+  migration.migrate_apidata_relations
+  migration.migrate_recommendations
+  migration.migrate_recommendations_of_apidata
+  migration.migrate_apidata_utiles_for_recommendations
   migration.migrate_contacts
 end
