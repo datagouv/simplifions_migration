@@ -114,7 +114,7 @@ class SimplifionsMigration
 
   def transform_public_solution(solution_source)
     source_fields = solution_source["fields"]
-
+    p source_fields["Ref_Nom_de_la_solution"]
     solution_target = {
       Visible_sur_simplifions: source_fields["Visible_sur_simplifions"],
       Description_courte: source_fields["Description_courte"],
@@ -122,8 +122,8 @@ class SimplifionsMigration
       Site_internet: source_fields["URL_Consulter_la_solution_"],
       Nom: source_fields["Ref_Nom_de_la_solution"],
       Operateur: transform_public_operateur_reference(source_fields["Operateur"]),
-      Prix: nil, # Prix_ 
-      Budget_requis: nil, 
+      Prix: transform_prix(source_fields["Prix_"]), 
+      Budget_requis: transform_budget(source_fields["budget"]), 
       Types_de_simplification: nil,
       A_destination_de: nil,
       Pour_simplifier_les_demarches_de: nil,
@@ -136,13 +136,27 @@ class SimplifionsMigration
   end
 
   def transform_public_operateur_reference(operateur_reference)
-    return nil if operateur_reference.nil? || operateur_reference.length <= 1
     fetch_operateurs_publics_source # Fills @operateurs_publics_source if not already filled
+    source_operateurs_ids = clean_array(operateur_reference)
+    return nil if !source_operateurs_ids
 
-    source_operateurs_ids = operateur_reference[1..] # Remove the leading "L"
     operateurs_sources = source_operateurs_ids.map { |source_operateur_id| @operateurs_publics_source.find { |operateur| operateur["id"] == source_operateur_id } }
     operateurs_targets = operateurs_sources.map { |operateur_source| @target_grist.find_record("Operateurs", Nom: operateur_source["fields"]["Nom"]) }
     ["L"] + operateurs_targets.map { |operateur_target| operateur_target["id"] }
+  end
+
+  def transform_prix(prix_source)
+    return nil if prix_source.nil?
+    prix_source == "Solution gratuite" ? "Gratuit" : "Payant"
+  end
+
+  def transform_budget(budget_source)
+    fetch_budgets_target # Fills @budgets_target if not already filled
+    budgets_names = clean_array(budget_source)
+    return nil if !budgets_names
+
+    budgets_targets = budgets_names.map { |budget_name| @budgets_target.find { |budget| budget["fields"]["Label"] == budget_name } }
+    ["L"] + budgets_targets.map { |budget_target| budget_target["id"] }
   end
 
   def fetch_operateurs_publics_source
@@ -151,6 +165,15 @@ class SimplifionsMigration
 
   def fetch_operateurs_prives_source
     @operateurs_prives_source ||= @source_grist.records("Editeurs")
+  end
+
+  def fetch_budgets_target
+    @budgets_target ||= @target_grist.records("Budgets_de_mise_en_oeuvre")
+  end
+
+  def clean_array(array_source)
+    return nil if array_source.nil? || array_source.length <= 1
+    array_source[1..] # Remove the leading "L"
   end
 
   # def create_attachment
