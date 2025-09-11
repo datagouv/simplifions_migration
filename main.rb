@@ -86,17 +86,32 @@ class SimplifionsMigration
     puts "\nMigrating recommendations of apidata..."
     fetch_recommendations_of_apidata_sources # Fills @recommendations_of_apidata_sources if not already filled
 
-    recommendations_of_apidata_targets = @recommendations_of_apidata_sources
+    recommendations_of_apidata_source = @recommendations_of_apidata_sources
       .filter { |reco| reco["fields"]["is_inside_a_recommendation"] == false}
 
-    recommendations_targets = recommendations_of_apidata_targets.map do |recommendation_of_apidata_source|
+    recommendations_targets = recommendations_of_apidata_source.map do |recommendation_of_apidata_source|
       transform_recommendation_of_apidata(recommendation_of_apidata_source)
     end
-
-    # TODO migrate apidata utiles for a reco
-
     @target_grist.create_records("Recommandations", recommendations_targets)
     puts "> #{recommendations_targets.length} recommendations of API or datasets migrated."
+  end
+
+  def migrate_apidata_utiles_for_recommendations
+    puts "\nCleaning apidata utiles for recommendations..."
+    @target_grist.delete_all_records("API_et_datasets_utiles")
+
+    puts "\nMigrating apidata utiles for recommendations..."
+    fetch_recommendations_of_apidata_sources # Fills @recommendations_of_apidata_sources if not already filled
+
+    apidata_utiles_source = @recommendations_of_apidata_sources
+      .filter { |reco| reco["fields"]["is_inside_a_recommendation"] == true && reco["fields"]["Reco_visible_sur_simplifions"] }
+
+    apidata_utiles_targets = apidata_utiles_source.map do |apidata_utiles_source|
+      transform_apidata_utiles(apidata_utiles_source)
+    end
+
+    @target_grist.create_records("API_et_datasets_utiles", apidata_utiles_targets)
+    puts "> #{apidata_utiles_targets.length} apidata utiles for recommendations migrated."
   end
 
   private
@@ -118,15 +133,24 @@ class SimplifionsMigration
     puts "--------------------------------"
   end
 
+  def transform_apidata_utiles(apidata_utiles_source)
+    source_fields = apidata_utiles_source["fields"]
+    {
+      Api_ou_dataset_utile_fourni_par_une_recommandation: transform_apidata_reference(source_fields["apidata_name"]),
+      Cas_d_usage: transform_cas_usage_reference(source_fields["cas_usage_name"]),
+      En_quoi_cette_API_ou_dataset_est_utile_pour_ce_cas_d_usage: source_fields["Description_de_l_utilisation"],
+    }
+  end
+
   def transform_recommendation_of_apidata(recommendation_of_apidata_source)
     source_fields = recommendation_of_apidata_source["fields"]
-    puts "> reco #{source_fields["apidata_name"]} for #{source_fields["cas_usage_name"]}"
+    puts "> #{source_fields["apidata_name"]} for #{source_fields["cas_usage_name"]}"
     {
       Cas_d_usage: transform_cas_usage_reference(source_fields["cas_usage_name"]),
       Solution_recommandee: nil,
       API_ou_datasets_recommandes: transform_apidata_reference(source_fields["apidata_name"]),
       En_quoi_cette_solution_est_elle_utile_pour_ce_cas_d_usage: source_fields["Description_de_l_utilisation"],
-      Visible_sur_simplifions: true,
+      Visible_sur_simplifions: source_fields["Reco_visible_sur_simplifions"],
       Concretement_pour_les_usagers: nil,
       Concretement_pour_vos_agents: nil,
       Ce_que_ne_fait_pas_cette_solution: nil,
@@ -557,5 +581,6 @@ if __FILE__ == $0
   # migration.migrate_cas_usages
   # migration.migrate_apidata_relations
   # migration.migrate_recommendations
-  migration.migrate_recommendations_of_apidata
+  # migration.migrate_recommendations_of_apidata
+  migration.migrate_apidata_utiles_for_recommendations
 end
