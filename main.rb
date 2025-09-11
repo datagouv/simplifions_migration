@@ -35,6 +35,7 @@ class SimplifionsMigration
       transform_public_solution(solution_source)
     end
     @target_grist.create_records("Solutions", solution_targets)
+    @target_grist.delete_unused_attachments
   end
 
   def migrate_operateurs
@@ -130,10 +131,19 @@ class SimplifionsMigration
       Pour_simplifier_les_demarches_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
       Cette_solution_permet: source_fields["Cette_solution_permet_"],
       Cette_solution_ne_permet_pas: source_fields["Cette_solution_ne_permet_pas_"],
-      Image: nil,
+      Image: transform_and_upload_image(source_fields["Image_principale"]),
       Legende_de_l_image: source_fields["Legende_image_principale"],
     }
     solution_target
+  end
+
+  def transform_and_upload_image(image_source)
+    source_image_ids = clean_array(image_source)
+    return nil if !source_image_ids
+    source_image_id = source_image_ids.first
+    source_image = @source_grist.download_attachment(source_image_id)
+    target_image_ids = @target_grist.create_attachment(source_image)
+    ["L"] + target_image_ids
   end
 
   def transform_public_operateur_reference(operateur_reference)

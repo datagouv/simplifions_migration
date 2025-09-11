@@ -50,6 +50,19 @@ class GristApi
     response['records']
   end
 
+  def download_attachment(attachment_id)
+    file_metadata = make_request(:get, "/docs/#{@document_id}/attachments/#{attachment_id}")
+    local_filename = "images/" + file_metadata["fileName"]
+    if File.exist?(local_filename)
+      return File.new(local_filename, 'r')
+    end
+    file_content = make_binary_request(:get, "/docs/#{@document_id}/attachments/#{attachment_id}/download")
+    file = File.new(local_filename, 'w+')
+    file.write(file_content)
+    file.rewind
+    file
+  end
+
   def delete_unused_attachments
     make_request(:post, "/docs/#{@document_id}/attachments/removeUnused")
   end
@@ -111,6 +124,15 @@ class GristApi
     handle_response(response, "#{verb.upcase} #{endpoint}")
   end
 
+  def make_binary_request(verb, endpoint)
+    uri = URI("#{@api_url}#{endpoint}")
+    http = create_http_connection(uri)
+    request = build_request(verb, uri)
+    
+    response = http.request(request)
+    handle_binary_response(response, "#{verb.upcase} #{endpoint}")
+  end
+
   def create_http_connection(uri)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = uri.scheme == 'https'
@@ -127,6 +149,14 @@ class GristApi
   def handle_response(response, operation)
     if response.code == '200' || response.code == '201'
       JSON.parse(response.body)
+    else
+      raise "Failed to #{operation}: #{response.code} - #{response.body}"
+    end
+  end
+
+  def handle_binary_response(response, operation)
+    if response.code == '200' || response.code == '201'
+      response.body
     else
       raise "Failed to #{operation}: #{response.code} - #{response.body}"
     end
