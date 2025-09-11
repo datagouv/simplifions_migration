@@ -23,6 +23,11 @@ class SimplifionsMigration
     # print_columns("SIMPLIFIONS_cas_usages", "Cas_d_usages")
   end
 
+  def migrate_api_and_datasets_relations
+    puts "Migrating api and datasets..."
+    migrate_api_and_datasets_relations_for_public_products
+  end
+
   def migrate_solutions
     "Cleaning solutions..."
     @target_grist.delete_all_records("Solutions")
@@ -68,13 +73,54 @@ class SimplifionsMigration
     puts "--------------------------------"
   end
 
+  def migrate_api_and_datasets_relations_for_public_products
+    @apidata_relations_source ||= @source_grist.records("Apidata_DANS_produitspublics")
+    apidata_relations_fournies = @apidata_relations_source.filter { |apidata_relation| apidata_relation["fields"]["statut_label"] == "🤖 Fournisseur de cette API ou data" }
+    
+    apidata_relations_fournies_targets = apidata_relations_fournies.map do |apidata_relation_source|
+      transform_api_and_datasets_fournies(apidata_relation_source)
+    end
+
+    # @target_grist.create_records("API_et_datasets_fournis", apidata_relations_fournies_targets)
+  end
+
+  def transform_api_and_datasets_fournies(apidata_relation_source)
+    source_fields = apidata_relation_source["fields"]
+    p "> #{source_fields["Api_data_ref"]}"
+    {
+      Solution_fournisseur: transform_solution_fournisseur_reference(source_fields["Choix_Produit_public"]),
+      API_ou_dataset_fourni: transform_apidata_reference(source_fields["Api_data_ref"]),
+      Utile_pour_les_cas_d_usages: nil,
+    }
+  end
+
+  def transform_solution_fournisseur_reference(solution_fournisseur_id)
+    fetch_solutions_publiques_source
+    solution_source = @solutions_publiques_source.find { |solution| solution["fields"]["Solution_publique"] == solution_fournisseur_id }
+    p solution_fournisseur_id
+    p solution_source["fields"]["Ref_Nom_de_la_solution"]
+    # TODO : NEED ALL PRODUITS PUBLICS, event those without simplifions solutions.
+    solution_target = @target_grist.find_record("Solutions", Nom: solution_source["fields"]["Ref_Nom_de_la_solution"])
+    solution_target["id"]
+  end
+
+  def transform_apidata_reference(apidata_name)
+    fetch_api_and_datasets_target # Fills @api_and_datasets_target if not already filled
+    return nil if !apidata_name
+
+    apidata_target = @api_and_datasets_target.find { |api_and_dataset| api_and_dataset["fields"]["Nom"] == apidata_name }
+    raise "Apidata not found in target grist: #{apidata_name}" if !apidata_target
+    apidata_target["id"]
+  end
+
   def migrate_public_solutions
     puts "Migrating public solutions..."
 
-    @solutions_publiques_source ||= @source_grist.records("SIMPLIFIONS_produitspublics")
-      .filter { |solution| solution["fields"]["Ref_Nom_de_la_solution"] != "000-data-gouv" }
+    fetch_solutions_publiques_source
+    solutions_source = @solutions_publiques_source
+      .filter { |solution| solution["fields"]["Ref_Nom_de_la_solution"] != "000-data-gouv" } # We don't want to migrate this solutions
 
-    solution_targets = @solutions_publiques_source.map do |solution_source|
+    solution_targets = solutions_source.map do |solution_source|
       transform_public_solution(solution_source)
     end
 
@@ -269,6 +315,14 @@ class SimplifionsMigration
     @fournisseurs_de_service_target ||= @target_grist.records("Fournisseurs_de_services")
   end
 
+  def fetch_api_and_datasets_target
+    @api_and_datasets_target ||= @target_grist.records("APIs_et_datasets")
+  end
+
+  def fetch_solutions_publiques_source
+    @solutions_publiques_source ||= @source_grist.records("SIMPLIFIONS_produitspublics")
+  end
+
   def clean_array(array_source)
     return nil if array_source.nil? || array_source.length <= 1
     array_source[1..] # Remove the leading "L"
@@ -281,5 +335,5 @@ if __FILE__ == $0
 
   # migration.migrate_operateurs
   # migration.migrate_solutions
-  migration.migrate_api_and_datasets
+  migration.migrate_api_and_datasets_relations
 end
