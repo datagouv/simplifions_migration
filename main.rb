@@ -36,8 +36,8 @@ class SimplifionsMigration
     @target_grist.delete_all_records("API_et_datasets_integres")
 
     puts "\nMigrating public api and datasets relations..."
-    # migrate_apidata_fournies_for_public_products
-    # migrate_apidata_integrated_for_public_products
+    migrate_apidata_fournies_for_public_products
+    migrate_apidata_integrated_for_public_products
     migrate_apidata_integrated_for_private_products
   end
 
@@ -107,7 +107,7 @@ class SimplifionsMigration
       transform_private_apidata_integrated(apidata_relation_source)
     end
 
-    # @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
+    @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
   end
 
   def migrate_apidata_fournies_for_public_products
@@ -136,7 +136,7 @@ class SimplifionsMigration
     source_fields = apidata_relation_source["fields"]
     puts "> #{source_fields["solution_editeur"]}"
     {
-      Solution_integratrice: transform_solution_reference(source_fields["solution_editeur"]), # NEED ORPHANS EDITEURS
+      Solution_integratrice: transform_solution_reference(source_fields["solution_editeur"]),
       API_ou_dataset_integre: transform_apidata_reference(source_fields["apidata_name"]),
       Status_de_l_integration: source_fields["statut_label"],
       Integre_pour_les_cas_d_usages: transform_cas_usages_reference(source_fields["integre_pour_les_cas_dusages"]),
@@ -473,8 +473,8 @@ end
 if __FILE__ == $0
   migration = SimplifionsMigration.new
 
-  migration.migrate_operateurs
-  migration.migrate_solutions
+  # migration.migrate_operateurs
+  # migration.migrate_solutions
   # migration.migrate_cas_usages
-  # migration.migrate_apidata_relations
+  migration.migrate_apidata_relations
 end
