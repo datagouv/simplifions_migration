@@ -114,6 +114,20 @@ class SimplifionsMigration
     puts "> #{apidata_utiles_targets.length} apidata utiles for recommendations migrated."
   end
 
+  def migrate_contacts
+    puts "\nCleaning contacts..."
+    @target_grist.delete_all_records("Contacts")
+
+    puts "\nMigrating contacts..."
+    fetch_contacts_source
+    contacts_targets = @contacts_source.map do |contact_source|
+      transform_contact(contact_source)
+    end
+
+    @target_grist.create_records("Contacts", contacts_targets)
+    puts "> #{contacts_targets.length} contacts migrated."
+  end
+
   private
 
   def print_columns(source_table, target_table)
@@ -131,6 +145,24 @@ class SimplifionsMigration
         ].join(": ")
       }
     puts "--------------------------------"
+  end
+
+  def transform_contact(contact_source)
+    source_fields = contact_source["fields"]
+    puts "> #{source_fields["Nom"]} #{source_fields["Prenom"]}"
+
+    products = clean_array(source_fields["produits_names"])
+
+    {
+      Nom: source_fields["Nom"],
+      Prenom: source_fields["Prenom"],
+      Email: nil,
+      Produits_publics_concernes: ["L"] + products.map { |name| transform_solution_reference(name) },
+      Editeur: transform_operateur_reference(source_fields["editeur_name"]),
+      Solutions: ["L"] + [transform_solution_reference(source_fields["solution_name"])],
+      Notes: source_fields["Note"],
+      Role: nil,
+    }
   end
 
   def transform_apidata_utiles(apidata_utiles_source)
@@ -371,7 +403,7 @@ class SimplifionsMigration
     source_fields = solution_source["fields"]
 
     transform_base_solution(source_fields).merge({
-      Operateur: transform_private_operateur_reference(source_fields["operateur_nom"]),
+      Operateur: transform_operateur_reference(source_fields["operateur_nom"]),
     })
   end
 
@@ -415,7 +447,7 @@ class SimplifionsMigration
       Visible_sur_simplifions: false,
       Site_internet: source_fields["Site_de_reference"],
       Nom: source_fields["Nom_du_logiciel_editeur"],
-      Operateur: transform_private_operateur_reference(source_fields["operateur_nom"]),
+      Operateur: transform_operateur_reference(source_fields["operateur_nom"]),
       Pour_simplifier_les_demarches_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
       A_destination_de: transform_usagers(source_fields["target_users"]),
     }
@@ -441,10 +473,8 @@ class SimplifionsMigration
     ["L"] + operateurs_targets.map { |operateur_target| operateur_target["id"] }
   end
 
-  def transform_private_operateur_reference(source_operateur_nom)
-    fetch_operateurs_prives_source # Fills @operateurs_prives_source if not already filled
+  def transform_operateur_reference(source_operateur_nom)
     return nil if !source_operateur_nom
-    puts source_operateur_nom
     fetch_operateurs_target # Fills @operateurs_target if not already filled
     operateur_target = @operateurs_target.find { |operateur| operateur["fields"]["Nom"] == source_operateur_nom }
     ["L", operateur_target["id"]]
@@ -566,8 +596,12 @@ class SimplifionsMigration
     @recommendations_of_apidata_sources ||= @source_grist.records("SIMPLIFIONS_description_apidata_cas_usages")
   end
 
+  def fetch_contacts_source
+    @contacts_source ||= @source_grist.records("Contacts_editeurs")
+  end
+
   def clean_array(array_source)
-    return nil if array_source.nil? || array_source.length <= 1
+    return [] if array_source.nil? || array_source.length <= 1
     array_source[1..] # Remove the leading "L"
   end
 end
@@ -582,5 +616,6 @@ if __FILE__ == $0
   # migration.migrate_apidata_relations
   # migration.migrate_recommendations
   # migration.migrate_recommendations_of_apidata
-  migration.migrate_apidata_utiles_for_recommendations
+  # migration.migrate_apidata_utiles_for_recommendations
+  migration.migrate_contacts
 end
