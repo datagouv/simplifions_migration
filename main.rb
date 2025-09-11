@@ -102,6 +102,7 @@ class SimplifionsMigration
       transform_api_and_datasets_fournies(apidata_relation_source)
     end
 
+    @target_grist.delete_all_records("API_et_datasets_fournis")
     @target_grist.create_records("API_et_datasets_fournis", apidata_relations_fournies_targets)
   end
 
@@ -111,9 +112,18 @@ class SimplifionsMigration
     {
       Solution_fournisseur: transform_solution_fournisseur_reference(source_fields["produit_public"]),
       API_ou_dataset_fourni: transform_apidata_reference(source_fields["Api_data_ref"]),
-      Utile_pour_les_cas_d_usages: nil, # TODO : Need cas d'usages for that.
+      Utile_pour_les_cas_d_usages: transform_cas_usages_reference(source_fields["Utile_pour_les_cas_d_usages"]),
     }
   end
+
+  def transform_cas_usages_reference(cas_usages_names)
+    cas_usages_names = clean_array(cas_usages_names)
+    return nil if !cas_usages_names
+
+    cas_usages_targets = cas_usages_names.map { |cas_usages_name| @target_grist.find_record("Cas_d_usages", Nom: cas_usages_name) }
+    ["L"] + cas_usages_targets.map { |cas_usages_target| cas_usages_target["id"] }
+  end
+
 
   def transform_solution_fournisseur_reference(solution_fournisseur_name)
     solution_target = @target_grist.find_record("Solutions", Nom: solution_fournisseur_name)
@@ -375,6 +385,6 @@ if __FILE__ == $0
 
   # migration.migrate_operateurs
   # migration.migrate_solutions
-  migration.migrate_cas_usages
-  # migration.migrate_api_and_datasets_relations
+  # migration.migrate_cas_usages
+  migration.migrate_api_and_datasets_relations
 end
