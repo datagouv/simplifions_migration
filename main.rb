@@ -219,6 +219,12 @@ class SimplifionsMigration
       transform_private_solution(solution_source)
     end
 
+    puts "\nMigrating orphan private solutions..."
+    fetch_orphan_solutions_privees_source
+    solution_targets += @orphan_solutions_privees_source.map do |solution_source|
+      transform_orphan_private_solution(solution_source)
+    end
+
     @target_grist.create_records("Solutions", solution_targets)
   end
 
@@ -311,6 +317,18 @@ class SimplifionsMigration
     }
   end
 
+  def transform_orphan_private_solution(solution_source)
+    source_fields = solution_source["fields"]
+    puts "> " + source_fields["Nom_du_logiciel_editeur"]
+    {
+      Visible_sur_simplifions: false,
+      Site_internet: source_fields["Site_de_reference"],
+      Nom: source_fields["Nom_du_logiciel_editeur"],
+      Operateur: transform_private_operateur_reference(source_fields["operateur_nom"]),
+      Pour_simplifier_les_demarches_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
+      A_destination_de: transform_usagers(source_fields["target_users"]),
+    }
+  end
 
   def transform_and_upload_image(image_source)
     source_image_ids = clean_array(image_source)
@@ -335,6 +353,7 @@ class SimplifionsMigration
   def transform_private_operateur_reference(source_operateur_nom)
     fetch_operateurs_prives_source # Fills @operateurs_prives_source if not already filled
     return nil if !source_operateur_nom
+    puts source_operateur_nom
     fetch_operateurs_target # Fills @operateurs_target if not already filled
     operateur_target = @operateurs_target.find { |operateur| operateur["fields"]["Nom"] == source_operateur_nom }
     ["L", operateur_target["id"]]
@@ -376,8 +395,11 @@ class SimplifionsMigration
     fetch_fournisseurs_de_service_target # Fills @fournisseurs_de_service_target if not already filled
     fournisseurs_de_service_names = clean_array(fournisseurs_de_service_source)
     return nil if !fournisseurs_de_service_names
-
-    fournisseurs_de_service_targets = fournisseurs_de_service_names.map { |fournisseurs_de_service_name| @fournisseurs_de_service_target.find { |fournisseurs_de_service| fournisseurs_de_service["fields"]["slug"] == fournisseurs_de_service_name } }
+    
+    fournisseurs_de_service_targets = fournisseurs_de_service_names.map { |fournisseurs_de_service_name|
+      @fournisseurs_de_service_target.find { |fournisseurs_de_service| fournisseurs_de_service["fields"]["slug"] == fournisseurs_de_service_name }
+    }
+    
     ["L"] + fournisseurs_de_service_targets.map { |fournisseurs_de_service_target| fournisseurs_de_service_target["id"] }
   end
 
@@ -417,6 +439,10 @@ class SimplifionsMigration
     @orphan_solutions_publiques_source ||= @source_grist.records("Produitspublics", filter: { has_simplifions_page: [false] })
   end
 
+  def fetch_orphan_solutions_privees_source
+    @orphan_solutions_privees_source ||= @source_grist.records("Logiciels_editeurs", filter: { has_simplifions_page: [false] })
+  end
+
   def fetch_apidata_public_relations_source
     @apidata_public_relations_source ||= @source_grist.records("Apidata_DANS_produitspublics")
   end
@@ -447,8 +473,8 @@ end
 if __FILE__ == $0
   migration = SimplifionsMigration.new
 
-  # migration.migrate_operateurs
-  # migration.migrate_solutions
+  migration.migrate_operateurs
+  migration.migrate_solutions
   # migration.migrate_cas_usages
-  migration.migrate_apidata_relations
+  # migration.migrate_apidata_relations
 end
