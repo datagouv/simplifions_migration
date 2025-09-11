@@ -151,7 +151,6 @@ class SimplifionsMigration
 
   def transform_contact(contact_source)
     source_fields = contact_source["fields"]
-    puts "> #{source_fields["Nom"]} #{source_fields["Prenom"]}"
 
     products = clean_array(source_fields["produits_names"])
 
@@ -178,7 +177,6 @@ class SimplifionsMigration
 
   def transform_recommendation_of_apidata(recommendation_of_apidata_source)
     source_fields = recommendation_of_apidata_source["fields"]
-    puts "> #{source_fields["apidata_name"]} for #{source_fields["cas_usage_name"]}"
     {
       Cas_d_usage: transform_cas_usage_reference(source_fields["cas_usage_name"]),
       Solution_recommandee: nil,
@@ -233,6 +231,7 @@ class SimplifionsMigration
     end
 
     @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
+    puts "> #{apidata_relations_integrated_targets.length} apidata integrated for private products migrated."
   end
 
   def migrate_apidata_fournies_for_public_products
@@ -244,6 +243,7 @@ class SimplifionsMigration
     end
 
     @target_grist.create_records("API_et_datasets_fournis", apidata_relations_fournies_targets)
+    puts "> #{apidata_relations_fournies_targets.length} apidata fournies for public products migrated."
   end
 
   def migrate_apidata_integrated_for_public_products
@@ -255,11 +255,11 @@ class SimplifionsMigration
     end
 
     @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
+    puts "> #{apidata_relations_integrated_targets.length} apidata integrated for public products migrated."
   end
 
   def transform_private_apidata_integrated(apidata_relation_source)
     source_fields = apidata_relation_source["fields"]
-    puts "> #{source_fields["solution_editeur"]}"
     {
       Solution_integratrice: transform_solution_reference(source_fields["solution_editeur"]),
       API_ou_dataset_integre: transform_apidata_reference(source_fields["apidata_name"]),
@@ -270,7 +270,6 @@ class SimplifionsMigration
 
   def transform_public_apidata_integrated(apidata_relation_source)
     source_fields = apidata_relation_source["fields"]
-    puts "> #{source_fields["Api_data_ref"]}"
     {
       Solution_integratrice: transform_solution_reference(source_fields["produit_public"]),
       API_ou_dataset_integre: transform_apidata_reference(source_fields["Api_data_ref"]),
@@ -281,7 +280,6 @@ class SimplifionsMigration
 
   def transform_public_apidata_fournies(apidata_relation_source)
     source_fields = apidata_relation_source["fields"]
-    puts "> #{source_fields["Api_data_ref"]}"
     {
       Solution_fournisseur: transform_solution_reference(source_fields["produit_public"]),
       API_ou_dataset_fourni: transform_apidata_reference(source_fields["Api_data_ref"]),
@@ -333,6 +331,7 @@ class SimplifionsMigration
     end
 
     @target_grist.create_records("Solutions", solution_targets)
+    puts "> #{solution_targets.length} public solutions migrated."
   end
 
   def migrate_private_solutions
@@ -351,6 +350,7 @@ class SimplifionsMigration
     end
 
     @target_grist.create_records("Solutions", solution_targets)
+    puts "> #{solution_targets.length} private solutions migrated."
   end
 
   def transform_public_operateur(operateur_source)
@@ -410,7 +410,6 @@ class SimplifionsMigration
   end
 
   def transform_base_solution(source_fields)
-    puts "> " + source_fields["Ref_Nom_de_la_solution"]
     {
       Visible_sur_simplifions: source_fields["Visible_sur_simplifions"],
       Description_courte: source_fields["Description_courte"],
@@ -431,7 +430,6 @@ class SimplifionsMigration
 
   def transform_orphan_public_solution(solution_source)
     source_fields = solution_source["fields"]
-    puts "> " + source_fields["Nom_produit_public"]
     {
       Visible_sur_simplifions: false,
       Site_internet: source_fields["Site_internet"],
@@ -444,7 +442,6 @@ class SimplifionsMigration
 
   def transform_orphan_private_solution(solution_source)
     source_fields = solution_source["fields"]
-    puts "> " + source_fields["Nom_du_logiciel_editeur"]
     {
       Visible_sur_simplifions: false,
       Site_internet: source_fields["Site_de_reference"],
