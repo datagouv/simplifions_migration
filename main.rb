@@ -91,28 +91,6 @@ class SimplifionsMigration
   #   file.close
   #  end
   # end
-
-  # def create_a_solution
-  #   solution_data = {
-  #     Visible_sur_simplifions: true,
-  #     Description_courte: "Description courte de la solution",
-  #     Description_longue: "Description longue de la solution",
-  #     Site_internet: "https://www.solution1.com",
-  #     Nom: "Nom de la solution",
-  #     Operateur: 1,
-  #     Prix: "Gratuit",
-  #     Budget_requis: 1,
-  #     Types_de_simplification: 1,
-  #     A_destination_de: ["L", 2, 3],
-  #     Pour_simplifier_les_demarches_de: 3,
-  #     Cette_solution_permet: "Cette solution permet ceci",
-  #     Cette_solution_ne_permet_pas: "Cette solution ne permet pas cela",
-  #     Image: ["L", 10],
-  #     Legende_de_l_image: "Legende de l'image"
-  #   }
-  #   record = @target_grist.create_record("Solutions", solution_data)
-  #   puts record
-  # end
 end
 
 # Example usage
