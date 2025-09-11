@@ -30,9 +30,15 @@ class SimplifionsMigration
     puts "> #{cas_usages_targets.length} cas usages migrated."
   end
 
-  def migrate_api_and_datasets_relations
-    puts "Migrating api and datasets relations..."
-    migrate_api_and_datasets_relations_for_public_products
+  def migrate_apidata_relations
+    puts "Cleaning api and datasets fournis..."
+    @target_grist.delete_all_records("API_et_datasets_fournis")
+    @target_grist.delete_all_records("API_et_datasets_integres")
+
+    puts "Migrating public api and datasets relations..."
+    # migrate_apidata_fournies_for_public_products
+    migrate_apidata_integrated_for_public_products
+    # migrate_apidata_integrated_for_private_products
   end
 
   def migrate_solutions
@@ -94,19 +100,29 @@ class SimplifionsMigration
     }
   end
 
-  def migrate_api_and_datasets_relations_for_public_products
-    @apidata_relations_source ||= @source_grist.records("Apidata_DANS_produitspublics")
-    apidata_relations_fournies = @apidata_relations_source.filter { |apidata_relation| apidata_relation["fields"]["statut_label"] == "🤖 Fournisseur de cette API ou data" }
+  def migrate_apidata_fournies_for_public_products
+    fetch_apidata_public_relations_source
+    apidata_relations_fournies = @apidata_public_relations_source.filter { |apidata_relation| apidata_relation["fields"]["statut_label"] == "🤖 Fournisseur de cette API ou data" }
     
     apidata_relations_fournies_targets = apidata_relations_fournies.map do |apidata_relation_source|
-      transform_api_and_datasets_fournies(apidata_relation_source)
+      transform_apidata_fournies(apidata_relation_source)
     end
 
-    @target_grist.delete_all_records("API_et_datasets_fournis")
     @target_grist.create_records("API_et_datasets_fournis", apidata_relations_fournies_targets)
   end
 
-  def transform_api_and_datasets_fournies(apidata_relation_source)
+  def migrate_apidata_integrated_for_public_products
+    fetch_apidata_public_relations_source
+    apidata_relations_integrated = @apidata_public_relations_source.filter { |apidata_relation| apidata_relation["fields"]["statut_label"] != "🤖 Fournisseur de cette API ou data" }
+
+    # apidata_relations_integrated_targets = apidata_relations_integrated.map do |apidata_relation_source|
+    #   transform_apidata_integrated(apidata_relation_source)
+    # end
+
+    # @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
+  end
+
+  def transform_apidata_fournies(apidata_relation_source)
     source_fields = apidata_relation_source["fields"]
     p "> #{source_fields["Api_data_ref"]}"
     {
@@ -131,10 +147,10 @@ class SimplifionsMigration
   end
 
   def transform_apidata_reference(apidata_name)
-    fetch_api_and_datasets_target # Fills @api_and_datasets_target if not already filled
+    fetch_apidata_target # Fills @apidata_target if not already filled
     return nil if !apidata_name
 
-    apidata_target = @api_and_datasets_target.find { |api_and_dataset| api_and_dataset["fields"]["Nom"] == apidata_name }
+    apidata_target = @apidata_target.find { |api_and_dataset| api_and_dataset["fields"]["Nom"] == apidata_name }
     raise "Apidata not found in target grist: #{apidata_name}" if !apidata_target
     apidata_target["id"]
   end
@@ -361,8 +377,8 @@ class SimplifionsMigration
     @fournisseurs_de_service_target ||= @target_grist.records("Fournisseurs_de_services")
   end
 
-  def fetch_api_and_datasets_target
-    @api_and_datasets_target ||= @target_grist.records("APIs_et_datasets")
+  def fetch_apidata_target
+    @apidata_target ||= @target_grist.records("APIs_et_datasets")
   end
 
   def fetch_solutions_publiques_source
@@ -372,6 +388,8 @@ class SimplifionsMigration
   def fetch_orphan_solutions_publiques_source
     @orphan_solutions_publiques_source ||= @source_grist.records("Produitspublics", filter: { has_simplifions_page: [false] })
   end
+
+  def fetch_apidata_public_relations_source
 
   def clean_array(array_source)
     return nil if array_source.nil? || array_source.length <= 1
@@ -386,5 +404,5 @@ if __FILE__ == $0
   # migration.migrate_operateurs
   # migration.migrate_solutions
   # migration.migrate_cas_usages
-  migration.migrate_api_and_datasets_relations
+  migration.migrate_apidata_relations
 end
