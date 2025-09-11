@@ -124,7 +124,7 @@ class SimplifionsMigration
       Operateur: transform_public_operateur_reference(source_fields["Operateur"]),
       Prix: transform_prix(source_fields["Prix_"]), 
       Budget_requis: transform_budget(source_fields["budget"]), 
-      Types_de_simplification: nil,
+      Types_de_simplification: transform_types_simplifications(source_fields["types_de_simplification"]),
       A_destination_de: nil,
       Pour_simplifier_les_demarches_de: nil,
       Cette_solution_permet: source_fields["Cette_solution_permet_"],
@@ -159,6 +159,15 @@ class SimplifionsMigration
     ["L"] + budgets_targets.map { |budget_target| budget_target["id"] }
   end
 
+  def transform_types_simplifications(types_simplifications_source)
+    fetch_types_simplifications_target # Fills @types_simplifications_target if not already filled
+    types_simplifications_names = clean_array(types_simplifications_source)
+    return nil if !types_simplifications_names
+
+    types_simplifications_targets = types_simplifications_names.map { |types_simplification_name| @types_simplifications_target.find { |types_simplification| types_simplification["fields"]["Label"] == types_simplification_name } }
+    ["L"] + types_simplifications_targets.map { |types_simplification_target| types_simplification_target["id"] }
+  end
+
   def fetch_operateurs_publics_source
     @operateurs_publics_source ||= @source_grist.records("TYPE_nom_administration")
   end
@@ -169,6 +178,10 @@ class SimplifionsMigration
 
   def fetch_budgets_target
     @budgets_target ||= @target_grist.records("Budgets_de_mise_en_oeuvre")
+  end
+  
+  def fetch_types_simplifications_target
+    @types_simplifications_target ||= @target_grist.records("Types_de_simplification")
   end
 
   def clean_array(array_source)
