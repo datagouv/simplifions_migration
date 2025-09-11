@@ -20,7 +20,7 @@ class SimplifionsMigration
   end
 
   def migrate_cas_usages
-    puts "Migrating cas usages..."
+    puts "\nMigrating cas usages..."
     cas_usages_source = @source_grist.records("SIMPLIFIONS_cas_usages")
     cas_usages_targets = cas_usages_source.map do |cas_usage_source|
       transform_cas_usage(cas_usage_source)
@@ -31,27 +31,27 @@ class SimplifionsMigration
   end
 
   def migrate_apidata_relations
-    puts "Cleaning api and datasets fournis..."
+    puts "\nCleaning api and datasets fournis..."
     @target_grist.delete_all_records("API_et_datasets_fournis")
     @target_grist.delete_all_records("API_et_datasets_integres")
 
-    puts "Migrating public api and datasets relations..."
+    puts "\nMigrating public api and datasets relations..."
     migrate_apidata_fournies_for_public_products
     migrate_apidata_integrated_for_public_products
     # migrate_apidata_integrated_for_private_products
   end
 
   def migrate_solutions
-    "Cleaning solutions..."
+    puts "\nCleaning solutions..."
     @target_grist.delete_all_records("Solutions")
     migrate_public_solutions
     migrate_private_solutions
-    "Cleaning unused attachments..."
+    puts "\nCleaning unused attachments..."
     @target_grist.delete_unused_attachments
   end
 
   def migrate_operateurs
-    puts "Migrating operateurs..."
+    puts "\nMigrating operateurs..."
     fetch_operateurs_publics_source
     fetch_operateurs_prives_source
 
@@ -170,7 +170,7 @@ class SimplifionsMigration
   end
 
   def migrate_public_solutions
-    puts "Migrating public solutions..."
+    puts "\nMigrating public solutions..."
 
     fetch_solutions_publiques_source
     solutions_source = @solutions_publiques_source
@@ -180,7 +180,7 @@ class SimplifionsMigration
       transform_public_solution(solution_source)
     end
 
-    puts "Migrating orphan public solutions..."
+    puts "\nMigrating orphan public solutions..."
     fetch_orphan_solutions_publiques_source
     solution_targets += @orphan_solutions_publiques_source.map do |solution_source|
       transform_orphan_public_solution(solution_source)
@@ -190,7 +190,7 @@ class SimplifionsMigration
   end
 
   def migrate_private_solutions
-    puts "Migrating private solutions..."
+    puts "\nMigrating private solutions..."
 
     @solutions_privees_source ||= @source_grist.records("SIMPLIFIONS_solutions_editeurs")
 
