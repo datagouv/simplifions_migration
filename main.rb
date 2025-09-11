@@ -51,6 +51,9 @@ class SimplifionsMigration
   end
 
   def migrate_operateurs
+    puts "\nCleaning operateurs..."
+    @target_grist.delete_all_records("Operateurs")
+
     puts "\nMigrating operateurs..."
     fetch_operateurs_publics_source
     fetch_operateurs_prives_source
@@ -62,7 +65,6 @@ class SimplifionsMigration
       transform_private_operateur(operateur_source)
     end
 
-    @target_grist.delete_all_records("Operateurs")
     @target_grist.create_records("Operateurs", operateur_targets)
     puts "> #{operateur_targets.length} operateurs migrated."
   end
