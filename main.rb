@@ -20,7 +20,14 @@ class SimplifionsMigration
   end
 
   def migrate_cas_usages
-    # print_columns("SIMPLIFIONS_cas_usages", "Cas_d_usages")
+    puts "Migrating cas usages..."
+    cas_usages_source = @source_grist.records("SIMPLIFIONS_cas_usages")
+    cas_usages_targets = cas_usages_source.map do |cas_usage_source|
+      transform_cas_usage(cas_usage_source)
+    end
+    @target_grist.delete_all_records("Cas_d_usages")
+    @target_grist.create_records("Cas_d_usages", cas_usages_targets)
+    puts "> #{cas_usages_targets.length} cas usages migrated."
   end
 
   def migrate_api_and_datasets_relations
@@ -71,6 +78,20 @@ class SimplifionsMigration
         ].join(": ")
       }
     puts "--------------------------------"
+  end
+
+  def transform_cas_usage(cas_usage_source)
+    source_fields = cas_usage_source["fields"]
+    {
+      Icone_du_titre: source_fields["Icone_du_titre"],
+      Nom: source_fields["Titre"],
+      Description: source_fields["Description_courte"],
+      Visible_sur_simplifions: source_fields["Visible_sur_simplifions"],
+      Contexte: source_fields["Contexte"],
+      Cadre_juridique: source_fields["Cadre_juridique"],
+      A_destination_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
+      Pour_simplifier_les_demarches_de: transform_usagers(source_fields["target_users"]),
+    }
   end
 
   def migrate_api_and_datasets_relations_for_public_products
@@ -354,5 +375,6 @@ if __FILE__ == $0
 
   # migration.migrate_operateurs
   # migration.migrate_solutions
-  migration.migrate_api_and_datasets_relations
+  migration.migrate_cas_usages
+  # migration.migrate_api_and_datasets_relations
 end
