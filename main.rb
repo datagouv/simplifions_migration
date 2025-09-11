@@ -24,22 +24,41 @@ class SimplifionsMigration
   end
 
   def migrate_solutions
+    "Cleaning solutions..."
+    @target_grist.delete_all_records("Solutions")
     migrate_public_solutions
+    migrate_private_solutions
+    "Cleaning unused attachments..."
+    @target_grist.delete_unused_attachments
   end
 
   def migrate_public_solutions
+    puts "Migrating public solutions..."
+
     @solutions_publiques_source ||= @source_grist.records("SIMPLIFIONS_produitspublics")
       .filter { |solution| solution["fields"]["Ref_Nom_de_la_solution"] != "000-data-gouv" }
+
     solution_targets = @solutions_publiques_source.map do |solution_source|
       transform_public_solution(solution_source)
     end
 
-    # @target_grist.delete_all_records("Solutions")
     @target_grist.create_records("Solutions", solution_targets)
-    @target_grist.delete_unused_attachments
+  end
+
+  def migrate_private_solutions
+    puts "Migrating private solutions..."
+
+    @solutions_privees_source ||= @source_grist.records("SIMPLIFIONS_solutions_editeurs")
+
+    solution_targets = @solutions_privees_source.map do |solution_source|
+      transform_private_solution(solution_source)
+    end
+
+    @target_grist.create_records("Solutions", solution_targets)
   end
 
   def migrate_operateurs
+    puts "Migrating operateurs..."
     fetch_operateurs_publics_source
     fetch_operateurs_prives_source
 
@@ -49,6 +68,7 @@ class SimplifionsMigration
     operateur_targets += @operateurs_prives_source.map do |operateur_source|
       transform_private_operateur(operateur_source)
     end
+
     @target_grist.delete_all_records("Operateurs")
     @target_grist.create_records("Operateurs", operateur_targets)
   end
@@ -114,15 +134,28 @@ class SimplifionsMigration
 
   def transform_public_solution(solution_source)
     source_fields = solution_source["fields"]
-    p source_fields["Ref_Nom_de_la_solution"]
 
-    solution_target = {
+    transform_base_solution(source_fields).merge({
+      Operateur: transform_public_operateur_reference(source_fields["Operateur"]),
+    })
+  end
+
+  def transform_private_solution(solution_source)
+    source_fields = solution_source["fields"]
+
+    transform_base_solution(source_fields).merge({
+      Operateur: transform_private_operateur_reference(source_fields["operateur_nom"]),
+    })
+  end
+
+  def transform_base_solution(source_fields)
+    puts "> " + source_fields["Ref_Nom_de_la_solution"]
+    {
       Visible_sur_simplifions: source_fields["Visible_sur_simplifions"],
       Description_courte: source_fields["Description_courte"],
       Description_longue: source_fields["Description_longue"],
       Site_internet: source_fields["URL_Consulter_la_solution_"],
       Nom: source_fields["Ref_Nom_de_la_solution"],
-      Operateur: transform_public_operateur_reference(source_fields["Operateur"]),
       Prix: transform_prix(source_fields["Prix_"]), 
       Budget_requis: transform_budget(source_fields["budget"]), 
       Types_de_simplification: transform_types_simplifications(source_fields["types_de_simplification"]),
@@ -133,7 +166,6 @@ class SimplifionsMigration
       Image: transform_and_upload_image(source_fields["Image_principale"]),
       Legende_de_l_image: source_fields["Legende_image_principale"],
     }
-    solution_target
   end
 
   def transform_and_upload_image(image_source)
@@ -151,6 +183,22 @@ class SimplifionsMigration
     return nil if !source_operateurs_ids
 
     operateurs_sources = source_operateurs_ids.map { |source_operateur_id| @operateurs_publics_source.find { |operateur| operateur["id"] == source_operateur_id } }
+    operateurs_targets = operateurs_sources.map { |operateur_source| @target_grist.find_record("Operateurs", Nom: operateur_source["fields"]["Nom"]) }
+    ["L"] + operateurs_targets.map { |operateur_target| operateur_target["id"] }
+  end
+
+  def transform_private_operateur_reference(source_operateur_nom)
+    fetch_operateurs_prives_source # Fills @operateurs_prives_source if not already filled
+    return nil if !source_operateur_nom
+    operateur_target = @target_grist.find_record("Operateurs", Nom: source_operateur_nom)
+    ["L", operateur_target["id"]]
+  end
+
+  def transform_operateur_reference(operateur_reference, operateurs_source)
+    source_operateurs_ids = clean_array(operateur_reference)
+    return nil if !source_operateurs_ids
+
+    operateurs_sources = source_operateurs_ids.map { |source_operateur_id| operateurs_source.find { |operateur| operateur["id"] == source_operateur_id } }
     operateurs_targets = operateurs_sources.map { |operateur_source| @target_grist.find_record("Operateurs", Nom: operateur_source["fields"]["Nom"]) }
     ["L"] + operateurs_targets.map { |operateur_target| operateur_target["id"] }
   end
@@ -230,6 +278,6 @@ end
 if __FILE__ == $0
   migration = SimplifionsMigration.new
 
-  # migration.migrate_operateurs
+  migration.migrate_operateurs
   migration.migrate_solutions
 end
