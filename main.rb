@@ -36,9 +36,9 @@ class SimplifionsMigration
     @target_grist.delete_all_records("API_et_datasets_integres")
 
     puts "\nMigrating public api and datasets relations..."
-    migrate_apidata_fournies_for_public_products
-    migrate_apidata_integrated_for_public_products
-    # migrate_apidata_integrated_for_private_products
+    # migrate_apidata_fournies_for_public_products
+    # migrate_apidata_integrated_for_public_products
+    migrate_apidata_integrated_for_private_products
   end
 
   def migrate_solutions
@@ -100,6 +100,16 @@ class SimplifionsMigration
     }
   end
 
+  def migrate_apidata_integrated_for_private_products
+    fetch_apidata_private_relations_source
+    
+    apidata_relations_integrated_targets = @apidata_private_relations_source.map do |apidata_relation_source|
+      transform_private_apidata_integrated(apidata_relation_source)
+    end
+
+    # @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
+  end
+
   def migrate_apidata_fournies_for_public_products
     fetch_apidata_public_relations_source
     apidata_relations_fournies = @apidata_public_relations_source.filter { |apidata_relation| apidata_relation["fields"]["statut_label"] == "🤖 Fournisseur de cette API ou data" }
@@ -120,6 +130,17 @@ class SimplifionsMigration
     end
 
     @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
+  end
+
+  def transform_private_apidata_integrated(apidata_relation_source)
+    source_fields = apidata_relation_source["fields"]
+    puts "> #{source_fields["solution_editeur"]}"
+    {
+      Solution_integratrice: transform_solution_reference(source_fields["solution_editeur"]), # NEED ORPHANS EDITEURS
+      API_ou_dataset_integre: transform_apidata_reference(source_fields["apidata_name"]),
+      Status_de_l_integration: source_fields["statut_label"],
+      Integre_pour_les_cas_d_usages: transform_cas_usages_reference(source_fields["integre_pour_les_cas_dusages"]),
+    }
   end
 
   def transform_public_apidata_integrated(apidata_relation_source)
@@ -400,6 +421,10 @@ class SimplifionsMigration
     @apidata_public_relations_source ||= @source_grist.records("Apidata_DANS_produitspublics")
   end
 
+  def fetch_apidata_private_relations_source
+    @apidata_private_relations_source ||= @source_grist.records("Apidata_ET_produitspublics_DANS_logicielsediteurs")
+  end
+
   def fetch_cas_d_usages_target
     @cas_d_usages_target ||= @target_grist.records("Cas_d_usages")
   end
@@ -423,7 +448,7 @@ if __FILE__ == $0
   migration = SimplifionsMigration.new
 
   # migration.migrate_operateurs
-  migration.migrate_solutions
+  # migration.migrate_solutions
   # migration.migrate_cas_usages
   migration.migrate_apidata_relations
 end
