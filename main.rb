@@ -32,31 +32,6 @@ class SimplifionsMigration
     @target_grist.delete_unused_attachments
   end
 
-  def migrate_public_solutions
-    puts "Migrating public solutions..."
-
-    @solutions_publiques_source ||= @source_grist.records("SIMPLIFIONS_produitspublics")
-      .filter { |solution| solution["fields"]["Ref_Nom_de_la_solution"] != "000-data-gouv" }
-
-    solution_targets = @solutions_publiques_source.map do |solution_source|
-      transform_public_solution(solution_source)
-    end
-
-    @target_grist.create_records("Solutions", solution_targets)
-  end
-
-  def migrate_private_solutions
-    puts "Migrating private solutions..."
-
-    @solutions_privees_source ||= @source_grist.records("SIMPLIFIONS_solutions_editeurs")
-
-    solution_targets = @solutions_privees_source.map do |solution_source|
-      transform_private_solution(solution_source)
-    end
-
-    @target_grist.create_records("Solutions", solution_targets)
-  end
-
   def migrate_operateurs
     puts "Migrating operateurs..."
     fetch_operateurs_publics_source
@@ -91,6 +66,31 @@ class SimplifionsMigration
         ].join(": ")
       }
     puts "--------------------------------"
+  end
+
+  def migrate_public_solutions
+    puts "Migrating public solutions..."
+
+    @solutions_publiques_source ||= @source_grist.records("SIMPLIFIONS_produitspublics")
+      .filter { |solution| solution["fields"]["Ref_Nom_de_la_solution"] != "000-data-gouv" }
+
+    solution_targets = @solutions_publiques_source.map do |solution_source|
+      transform_public_solution(solution_source)
+    end
+
+    @target_grist.create_records("Solutions", solution_targets)
+  end
+
+  def migrate_private_solutions
+    puts "Migrating private solutions..."
+
+    @solutions_privees_source ||= @source_grist.records("SIMPLIFIONS_solutions_editeurs")
+
+    solution_targets = @solutions_privees_source.map do |solution_source|
+      transform_private_solution(solution_source)
+    end
+
+    @target_grist.create_records("Solutions", solution_targets)
   end
 
   def transform_public_operateur(operateur_source)
@@ -279,6 +279,7 @@ end
 if __FILE__ == $0
   migration = SimplifionsMigration.new
 
-  migration.migrate_operateurs
-  migration.migrate_solutions
+  # migration.migrate_operateurs
+  # migration.migrate_solutions
+  migration.migrate_api_and_datasets
 end
