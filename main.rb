@@ -105,7 +105,7 @@ class SimplifionsMigration
     apidata_relations_fournies = @apidata_public_relations_source.filter { |apidata_relation| apidata_relation["fields"]["statut_label"] == "🤖 Fournisseur de cette API ou data" }
     
     apidata_relations_fournies_targets = apidata_relations_fournies.map do |apidata_relation_source|
-      transform_apidata_fournies(apidata_relation_source)
+      transform_public_apidata_fournies(apidata_relation_source)
     end
 
     @target_grist.create_records("API_et_datasets_fournis", apidata_relations_fournies_targets)
@@ -114,19 +114,30 @@ class SimplifionsMigration
   def migrate_apidata_integrated_for_public_products
     fetch_apidata_public_relations_source
     apidata_relations_integrated = @apidata_public_relations_source.filter { |apidata_relation| apidata_relation["fields"]["statut_label"] != "🤖 Fournisseur de cette API ou data" }
+    
+    apidata_relations_integrated_targets = apidata_relations_integrated.map do |apidata_relation_source|
+      transform_public_apidata_integrated(apidata_relation_source)
+    end
 
-    # apidata_relations_integrated_targets = apidata_relations_integrated.map do |apidata_relation_source|
-    #   transform_apidata_integrated(apidata_relation_source)
-    # end
-
-    # @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
+    @target_grist.create_records("API_et_datasets_integres", apidata_relations_integrated_targets)
   end
 
-  def transform_apidata_fournies(apidata_relation_source)
+  def transform_public_apidata_integrated(apidata_relation_source)
     source_fields = apidata_relation_source["fields"]
-    p "> #{source_fields["Api_data_ref"]}"
+    puts "> #{source_fields["Api_data_ref"]}"
     {
-      Solution_fournisseur: transform_solution_fournisseur_reference(source_fields["produit_public"]),
+      Solution_integratrice: transform_solution_reference(source_fields["produit_public"]),
+      API_ou_dataset_integre: transform_apidata_reference(source_fields["Api_data_ref"]),
+      Status_de_l_integration: source_fields["statut_label"],
+      Integre_pour_les_cas_d_usages: transform_cas_usages_reference(source_fields["Utile_pour_les_cas_d_usages"]),
+    }
+  end
+
+  def transform_public_apidata_fournies(apidata_relation_source)
+    source_fields = apidata_relation_source["fields"]
+    puts "> #{source_fields["Api_data_ref"]}"
+    {
+      Solution_fournisseur: transform_solution_reference(source_fields["produit_public"]),
       API_ou_dataset_fourni: transform_apidata_reference(source_fields["Api_data_ref"]),
       Utile_pour_les_cas_d_usages: transform_cas_usages_reference(source_fields["Utile_pour_les_cas_d_usages"]),
     }
@@ -141,7 +152,8 @@ class SimplifionsMigration
   end
 
 
-  def transform_solution_fournisseur_reference(solution_fournisseur_name)
+  def transform_solution_reference(solution_fournisseur_name)
+    return nil if solution_fournisseur_name == "000-data-gouv" # We don't want to migrate this solution
     solution_target = @target_grist.find_record("Solutions", Nom: solution_fournisseur_name)
     solution_target["id"]
   end
@@ -390,6 +402,8 @@ class SimplifionsMigration
   end
 
   def fetch_apidata_public_relations_source
+    @apidata_public_relations_source ||= @source_grist.records("Apidata_DANS_produitspublics")
+  end
 
   def clean_array(array_source)
     return nil if array_source.nil? || array_source.length <= 1
