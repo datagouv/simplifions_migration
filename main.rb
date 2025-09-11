@@ -24,7 +24,7 @@ class SimplifionsMigration
   end
 
   def migrate_api_and_datasets_relations
-    puts "Migrating api and datasets..."
+    puts "Migrating api and datasets relations..."
     migrate_api_and_datasets_relations_for_public_products
   end
 
@@ -81,26 +81,21 @@ class SimplifionsMigration
       transform_api_and_datasets_fournies(apidata_relation_source)
     end
 
-    # @target_grist.create_records("API_et_datasets_fournis", apidata_relations_fournies_targets)
+    @target_grist.create_records("API_et_datasets_fournis", apidata_relations_fournies_targets)
   end
 
   def transform_api_and_datasets_fournies(apidata_relation_source)
     source_fields = apidata_relation_source["fields"]
     p "> #{source_fields["Api_data_ref"]}"
     {
-      Solution_fournisseur: transform_solution_fournisseur_reference(source_fields["Choix_Produit_public"]),
+      Solution_fournisseur: transform_solution_fournisseur_reference(source_fields["produit_public"]),
       API_ou_dataset_fourni: transform_apidata_reference(source_fields["Api_data_ref"]),
-      Utile_pour_les_cas_d_usages: nil,
+      Utile_pour_les_cas_d_usages: nil, # TODO : Need cas d'usages for that.
     }
   end
 
-  def transform_solution_fournisseur_reference(solution_fournisseur_id)
-    fetch_solutions_publiques_source
-    solution_source = @solutions_publiques_source.find { |solution| solution["fields"]["Solution_publique"] == solution_fournisseur_id }
-    p solution_fournisseur_id
-    p solution_source["fields"]["Ref_Nom_de_la_solution"]
-    # TODO : NEED ALL PRODUITS PUBLICS, event those without simplifions solutions.
-    solution_target = @target_grist.find_record("Solutions", Nom: solution_source["fields"]["Ref_Nom_de_la_solution"])
+  def transform_solution_fournisseur_reference(solution_fournisseur_name)
+    solution_target = @target_grist.find_record("Solutions", Nom: solution_fournisseur_name)
     solution_target["id"]
   end
 
@@ -357,7 +352,7 @@ end
 if __FILE__ == $0
   migration = SimplifionsMigration.new
 
-  migration.migrate_operateurs
-  migration.migrate_solutions
-  # migration.migrate_api_and_datasets_relations
+  # migration.migrate_operateurs
+  # migration.migrate_solutions
+  migration.migrate_api_and_datasets_relations
 end
