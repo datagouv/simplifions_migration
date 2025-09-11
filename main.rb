@@ -68,7 +68,7 @@ class SimplifionsMigration
   end
 
   def migrate_recommendations
-    puts "\Cleaning recommendations..."
+    puts "\nCleaning recommendations..."
     @target_grist.delete_all_records("Recommandations")
 
     puts "\nMigrating recommendations..."
@@ -78,11 +78,25 @@ class SimplifionsMigration
       transform_recommendation_of_solution(recommendation_source)
     end
 
-    # TODO Migrate recommendations of apidata
+    @target_grist.create_records("Recommandations", recommendations_targets)
+    puts "> #{recommendations_targets.length} recommendations of solutions migrated."
+  end
+
+  def migrate_recommendations_of_apidata
+    puts "\nMigrating recommendations of apidata..."
+    fetch_recommendations_of_apidata_sources # Fills @recommendations_of_apidata_sources if not already filled
+
+    recommendations_of_apidata_targets = @recommendations_of_apidata_sources
+      .filter { |reco| reco["fields"]["is_inside_a_recommendation"] == false}
+
+    recommendations_targets = recommendations_of_apidata_targets.map do |recommendation_of_apidata_source|
+      transform_recommendation_of_apidata(recommendation_of_apidata_source)
+    end
+
+    # TODO migrate apidata utiles for a reco
 
     @target_grist.create_records("Recommandations", recommendations_targets)
-
-    puts "> #{recommendations_targets.length} recommendations migrated."
+    puts "> #{recommendations_targets.length} recommendations of API or datasets migrated."
   end
 
   private
@@ -102,6 +116,21 @@ class SimplifionsMigration
         ].join(": ")
       }
     puts "--------------------------------"
+  end
+
+  def transform_recommendation_of_apidata(recommendation_of_apidata_source)
+    source_fields = recommendation_of_apidata_source["fields"]
+    puts "> reco #{source_fields["apidata_name"]} for #{source_fields["cas_usage_name"]}"
+    {
+      Cas_d_usage: transform_cas_usage_reference(source_fields["cas_usage_name"]),
+      Solution_recommandee: nil,
+      API_ou_datasets_recommandes: transform_apidata_reference(source_fields["apidata_name"]),
+      En_quoi_cette_solution_est_elle_utile_pour_ce_cas_d_usage: source_fields["Description_de_l_utilisation"],
+      Visible_sur_simplifions: true,
+      Concretement_pour_les_usagers: nil,
+      Concretement_pour_vos_agents: nil,
+      Ce_que_ne_fait_pas_cette_solution: nil,
+    }
   end
 
   def transform_recommendation_of_solution(recommendation_source)
@@ -509,6 +538,10 @@ class SimplifionsMigration
     @recommendations_sources ||= @source_grist.records("SIMPLIFIONS_reco_solutions_cas_usages")
   end
 
+  def fetch_recommendations_of_apidata_sources
+    @recommendations_of_apidata_sources ||= @source_grist.records("SIMPLIFIONS_description_apidata_cas_usages")
+  end
+
   def clean_array(array_source)
     return nil if array_source.nil? || array_source.length <= 1
     array_source[1..] # Remove the leading "L"
@@ -523,5 +556,6 @@ if __FILE__ == $0
   # migration.migrate_solutions
   # migration.migrate_cas_usages
   # migration.migrate_apidata_relations
-  migration.migrate_recommendations
+  # migration.migrate_recommendations
+  migration.migrate_recommendations_of_apidata
 end
