@@ -36,7 +36,7 @@ class SimplifionsMigration
     @target_grist.delete_all_records("API_et_datasets_integres")
 
     puts "Migrating public api and datasets relations..."
-    # migrate_apidata_fournies_for_public_products
+    migrate_apidata_fournies_for_public_products
     migrate_apidata_integrated_for_public_products
     # migrate_apidata_integrated_for_private_products
   end
@@ -146,15 +146,17 @@ class SimplifionsMigration
   def transform_cas_usages_reference(cas_usages_names)
     cas_usages_names = clean_array(cas_usages_names)
     return nil if !cas_usages_names
+    fetch_cas_d_usages_target # Fills @cas_d_usages_target if not already filled
 
-    cas_usages_targets = cas_usages_names.map { |cas_usages_name| @target_grist.find_record("Cas_d_usages", Nom: cas_usages_name) }
+    cas_usages_targets = @cas_d_usages_target.filter { |cas_usages_target| cas_usages_names.include?(cas_usages_target["fields"]["Nom"]) }
     ["L"] + cas_usages_targets.map { |cas_usages_target| cas_usages_target["id"] }
   end
 
 
   def transform_solution_reference(solution_fournisseur_name)
     return nil if solution_fournisseur_name == "000-data-gouv" # We don't want to migrate this solution
-    solution_target = @target_grist.find_record("Solutions", Nom: solution_fournisseur_name)
+    fetch_solutions_target # Fills @solutions_target if not already filled
+    solution_target = @solutions_target.find { |solution| solution["fields"]["Nom"] == solution_fournisseur_name }
     solution_target["id"]
   end
 
@@ -302,26 +304,19 @@ class SimplifionsMigration
     fetch_operateurs_publics_source # Fills @operateurs_publics_source if not already filled
     source_operateurs_ids = clean_array(operateur_reference)
     return nil if !source_operateurs_ids
+    fetch_operateurs_target # Fills @operateurs_target if not already filled
 
     operateurs_sources = source_operateurs_ids.map { |source_operateur_id| @operateurs_publics_source.find { |operateur| operateur["id"] == source_operateur_id } }
-    operateurs_targets = operateurs_sources.map { |operateur_source| @target_grist.find_record("Operateurs", Nom: operateur_source["fields"]["Nom"]) }
+    operateurs_targets = operateurs_sources.map { |operateur_source| @operateurs_target.find { |operateur| operateur["fields"]["Nom"] == operateur_source["fields"]["Nom"] } }
     ["L"] + operateurs_targets.map { |operateur_target| operateur_target["id"] }
   end
 
   def transform_private_operateur_reference(source_operateur_nom)
     fetch_operateurs_prives_source # Fills @operateurs_prives_source if not already filled
     return nil if !source_operateur_nom
-    operateur_target = @target_grist.find_record("Operateurs", Nom: source_operateur_nom)
+    fetch_operateurs_target # Fills @operateurs_target if not already filled
+    operateur_target = @operateurs_target.find { |operateur| operateur["fields"]["Nom"] == source_operateur_nom }
     ["L", operateur_target["id"]]
-  end
-
-  def transform_operateur_reference(operateur_reference, operateurs_source)
-    source_operateurs_ids = clean_array(operateur_reference)
-    return nil if !source_operateurs_ids
-
-    operateurs_sources = source_operateurs_ids.map { |source_operateur_id| operateurs_source.find { |operateur| operateur["id"] == source_operateur_id } }
-    operateurs_targets = operateurs_sources.map { |operateur_source| @target_grist.find_record("Operateurs", Nom: operateur_source["fields"]["Nom"]) }
-    ["L"] + operateurs_targets.map { |operateur_target| operateur_target["id"] }
   end
 
   def transform_prix(prix_source)
@@ -405,6 +400,18 @@ class SimplifionsMigration
     @apidata_public_relations_source ||= @source_grist.records("Apidata_DANS_produitspublics")
   end
 
+  def fetch_cas_d_usages_target
+    @cas_d_usages_target ||= @target_grist.records("Cas_d_usages")
+  end
+
+  def fetch_solutions_target
+    @solutions_target ||= @target_grist.records("Solutions")
+  end
+
+  def fetch_operateurs_target
+    @operateurs_target ||= @target_grist.records("Operateurs")
+  end
+
   def clean_array(array_source)
     return nil if array_source.nil? || array_source.length <= 1
     array_source[1..] # Remove the leading "L"
@@ -416,7 +423,7 @@ if __FILE__ == $0
   migration = SimplifionsMigration.new
 
   # migration.migrate_operateurs
-  # migration.migrate_solutions
+  migration.migrate_solutions
   # migration.migrate_cas_usages
   migration.migrate_apidata_relations
 end
