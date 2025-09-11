@@ -71,6 +71,7 @@ class SimplifionsMigration
 
     @target_grist.delete_all_records("Operateurs")
     @target_grist.create_records("Operateurs", operateur_targets)
+    puts "> #{operateur_targets.length} operateurs migrated."
   end
 
   private
