@@ -328,7 +328,7 @@ class SimplifionsMigration
       transform_public_solution(solution_source)
     end
 
-    puts "\nMigrating orphan public solutions..."
+    puts "Migrating orphan public solutions..."
     fetch_orphan_solutions_publiques_source
     solution_targets += @orphan_solutions_publiques_source.map do |solution_source|
       transform_orphan_public_solution(solution_source)
@@ -347,7 +347,7 @@ class SimplifionsMigration
       transform_private_solution(solution_source)
     end
 
-    puts "\nMigrating orphan private solutions..."
+    puts "Migrating orphan private solutions..."
     fetch_orphan_solutions_privees_source
     solution_targets += @orphan_solutions_privees_source.map do |solution_source|
       transform_orphan_private_solution(solution_source)
