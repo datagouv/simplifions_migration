@@ -130,7 +130,35 @@ class SimplifionsMigration
     puts "> #{contacts_targets.length} contacts migrated."
   end
 
+  def migrate_recommandations_of_apidata_without_comments
+    puts "\nMigrating recommendations of apidata without comments..."
+    fetch_apidata_target # Fills @apidata_target if not already filled
+    fetch_cas_d_usages_source # Fills @cas_d_usages_source if not already filled
+    
+    target_records = []
+
+    fetch_cas_d_usages_source.each do |cas_d_usage_source|
+      apidatas_names = cas_d_usage_source["fields"]["apidata_utiles_without_description"]
+      next if !apidatas_names
+
+      apidatas_names[1..].each do |apidata_name|
+        apidata_target = @apidata_target.find { |apidata| apidata["fields"]["Nom"] == apidata_name }
+
+        target_records.push({
+          Cas_d_usage: transform_cas_usage_reference(cas_d_usage_source["fields"]["Titre"]),
+          API_ou_datasets_recommandes: transform_apidata_reference(apidata_name),
+          Visible_sur_simplifions: true,
+        })
+      end
+    end
+
+    @target_grist.create_records("Recommandations", target_records)
+    puts "> #{target_records.length} recommendations of apidata without comments migrated."
+  end
+
+
   private
+
 
   def print_columns(source_table, target_table)
     puts "Source columns of #{source_table}:"
@@ -621,5 +649,6 @@ if __FILE__ == $0
   migration.migrate_recommendations
   migration.migrate_recommendations_of_apidata
   migration.migrate_apidata_utiles_for_recommendations
+  migration.migrate_recommandations_of_apidata_without_comments
   migration.migrate_contacts
 end
