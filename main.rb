@@ -248,7 +248,11 @@ class SimplifionsMigration
 
   def migrate_apidata_integrated_for_public_products
     fetch_apidata_public_relations_source
-    apidata_relations_integrated = @apidata_public_relations_source.filter { |apidata_relation| apidata_relation["fields"]["statut_label"] != "🤖 Fournisseur de cette API ou data" }
+    apidata_relations_integrated = @apidata_public_relations_source
+      .filter { |apidata_relation| 
+        apidata_relation["fields"]["statut_label"] != "🤖 Fournisseur de cette API ou data" &&
+        apidata_relation["fields"]["produit_public"] != "000-data-gouv"
+      }
     
     apidata_relations_integrated_targets = apidata_relations_integrated.map do |apidata_relation_source|
       transform_public_apidata_integrated(apidata_relation_source)
