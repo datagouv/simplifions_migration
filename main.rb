@@ -414,7 +414,7 @@ class SimplifionsMigration
     cas_d_usage_target = {
       "Icone_du_titre" => source_fields["Icone_du_titre"],
       "Nom" => source_fields["Titre"],
-      "Description" => source_fields["Description"],
+      "Description_courte" => source_fields["Description_courte"],
       "Visible_sur_simplifions" => source_fields["Visible_sur_simplifions"],
       "Contexte" => source_fields["Contexte"],
       "Cadre_juridique" => source_fields["Cadre_juridique"],
