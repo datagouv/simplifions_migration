@@ -451,8 +451,8 @@ class SimplifionsMigration
       Prix: transform_prix(source_fields["Prix_"]), 
       Budget_requis: transform_budget(source_fields["budget"]), 
       Types_de_simplification: transform_types_simplifications(source_fields["types_de_simplification"]),
-      A_destination_de: transform_usagers(source_fields["target_users"]),
-      Pour_simplifier_les_demarches_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
+      A_destination_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
+      Pour_simplifier_les_demarches_de: transform_usagers(source_fields["target_users"]),
       Cette_solution_permet: source_fields["Cette_solution_permet_"],
       Cette_solution_ne_permet_pas: source_fields["Cette_solution_ne_permet_pas_"],
       Image: transform_and_upload_image(source_fields["Image_principale"]),
@@ -467,8 +467,8 @@ class SimplifionsMigration
       Site_internet: source_fields["Site_internet"],
       Nom: source_fields["Nom_produit_public"],
       Operateur: transform_public_operateur_reference(source_fields["Operateur"]),
-      Pour_simplifier_les_demarches_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
-      A_destination_de: transform_usagers(source_fields["target_users"]),
+      Pour_simplifier_les_demarches_de: transform_usagers(source_fields["target_users"]),
+      A_destination_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
     }
   end
 
@@ -479,8 +479,8 @@ class SimplifionsMigration
       Site_internet: source_fields["Site_de_reference"],
       Nom: source_fields["Nom_du_logiciel_editeur"],
       Operateur: transform_operateur_reference(source_fields["operateur_nom"]),
-      Pour_simplifier_les_demarches_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
-      A_destination_de: transform_usagers(source_fields["target_users"]),
+      Pour_simplifier_les_demarches_de: transform_usagers(source_fields["target_users"]),
+      A_destination_de: transform_fournisseurs_de_service(source_fields["fournisseurs_de_service"]),
     }
   end
 
